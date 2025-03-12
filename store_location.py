@@ -105,7 +105,7 @@ class FindLocationOnWeb:
                 self.driver.refresh()
             else:
                 correct_store = False
-                warning = f"Error : 可能出現多間類似{store}的店名，無法確認地址"
+                warning = f"ERROR : 可能出現多間類似{store}的店名，無法確認地址"
                 for i in range(1, len(store_info_element)):
                     store_name = location_table = store_info_element[i].find_element(By.XPATH, "./td").text
                     if store_name == store.split("門市")[0]:
@@ -117,7 +117,7 @@ class FindLocationOnWeb:
                 self.driver.refresh()
         except Exception as e:
             print(f"處理{store}門市時發生錯誤，{e}")
-            warning = f"Error : 無法確認{store}正確地址"
+            warning = f"ERROR : 無法確認{store}正確地址"
             store_location_dict[store] = warning
             self.driver.refresh()
         return store_location_dict
@@ -151,12 +151,12 @@ class FindLocationOnWeb:
                         find_adress = [info for info in location_table.split("\n") if "地址" in info]
                         location_text = find_adress[0].split("：")[1].replace(" ", "")
                         pass
-                warning = f"Error : 可能出現多間類似{store}的店名，無法確認地址"
+                warning = f"ERROR : 可能出現多間類似{store}的店名，無法確認地址"
                 store_location_dict[store] = warning if not correct_store else location_text
                 self.driver.refresh()
         except Exception as e:
             print(f"處理{store}門市時發生錯誤，{e}")
-            warning = f"Error : 無法確認{store}正確地址"
+            warning = f"ERROR : 無法確認{store}正確地址"
             store_location_dict[store] = warning
             self.driver.refresh()
         return store_location_dict

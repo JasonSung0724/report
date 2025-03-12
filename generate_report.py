@@ -6,6 +6,7 @@ from openpyxl import load_workbook
 from datetime import datetime
 import win32com.client as win32
 import os
+from openpyxl.styles import Font
 
 
 def get_delivery_info(row, store_adress):
@@ -45,7 +46,7 @@ def calculate_box_type(personal_order, product_info):
     elif grand_total <= 47:
         return "box90-EA", "90公分紙箱"
     else:
-        return "Error-需拆單", "Error-需拆單"
+        return "ERROR-需拆單", "ERROR-需拆單"
 
 
 def format_date(order_time):
@@ -196,13 +197,13 @@ def save_to_excel(new_rows, output_path):
     wb = load_workbook(FilePath.report)
     sheet = wb.active
     template_columns = [cell.value for cell in sheet[1]]
-
     processed_rows = [{col: row.get(col, "") for col in template_columns} for row in new_rows]
     new_data = pd.DataFrame(processed_rows)
-
     for i, row in enumerate(new_data.values, start=2):
         for j, value in enumerate(row, start=1):
-            sheet.cell(row=i, column=j, value=value)
+            cell = sheet.cell(row=i, column=j, value=value)
+            if isinstance(value, str) and "ERROR" in value:
+                cell.font = Font(color="FF0000")
 
     wb.save(output_path)
 
