@@ -4,7 +4,6 @@ from config import FilePath, TargetShipping, CompanyName
 from excel_controller import ExcelController
 from openpyxl import load_workbook
 from datetime import datetime
-import win32com.client as win32
 import os
 from openpyxl.styles import Font
 
@@ -14,7 +13,7 @@ def get_delivery_info(row, store_adress):
         return "Tcat", row["完整地址"]
     elif row["送貨方式"] == TargetShipping.family:
         store_filter = store_adress.data_filter({"商店": CompanyName.family, "門市名稱": row["門市名稱"]})
-        adress = "ERROR" if store_filter.empty else f"{row["門市名稱"]} ({store_filter.get("地址").iloc[0]})"
+        adress = "ERROR" if store_filter.empty else f"{row['門市名稱']} ({store_filter.get('地址').iloc[0]})"
         return "全家", adress
     elif row["送貨方式"] == TargetShipping.seven:
         store_filter = store_adress.data_filter({"商店": CompanyName.seven, "門市名稱": row["門市名稱"]})

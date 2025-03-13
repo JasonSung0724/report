@@ -1,45 +1,73 @@
-import tkinter as tk
-from tkinter import filedialog, messagebox
+from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QLineEdit, QPushButton, QFileDialog, QVBoxLayout, QMessageBox
+import sys
 from generate_report import generate_report
 
 
-def select_input_file():
-    file_path = filedialog.askopenfilename(title="選擇輸入的 Excel 檔案", filetypes=(("Excel files", "*.xls;*.xlsx"), ("All files", "*.*")))
-    input_file_var.set(file_path)
+class App(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.init_ui()
+
+    def init_ui(self):
+        self.setWindowTitle("訂單整理")
+        self.setGeometry(100, 100, 600, 200)
+
+        layout = QVBoxLayout()
+
+        # 輸入檔案
+        self.input_label = QLabel("選擇輸入檔案：")
+        self.input_field = QLineEdit(self)
+        self.input_button = QPushButton("瀏覽", self)
+        self.input_button.clicked.connect(self.select_input_file)
+
+        layout.addWidget(self.input_label)
+        layout.addWidget(self.input_field)
+        layout.addWidget(self.input_button)
+
+        # 輸出檔案
+        self.output_label = QLabel("輸出檔案檔名：")
+        self.output_field = QLineEdit(self)
+
+        layout.addWidget(self.output_label)
+        layout.addWidget(self.output_field)
+
+        # 生成報告按鈕
+        self.generate_button = QPushButton("生成報告", self)
+        self.generate_button.clicked.connect(self.generate_report_handler)
+
+        layout.addWidget(self.generate_button)
+
+        self.setLayout(layout)
+
+    def select_input_file(self):
+        options = QFileDialog.Options()
+        file_path, _ = QFileDialog.getOpenFileName(self, "選擇輸入的 Excel 檔案", "", "Excel Files (*.xlsx *.xls);;All Files (*)", options=options)
+        if file_path:
+            self.input_field.setText(file_path)
+
+    def output_file(self):
+        options = QFileDialog.Options()
+        file_path, _ = QFileDialog.getSaveFileName(self, "輸出檔案名", "", "Excel Files (*.xlsx);;All Files (*)", options=options)
+        if file_path:
+            self.output_field.setText(file_path)
+
+    def generate_report_handler(self):
+        input_path = self.input_field.text()
+        output_path = self.output_field.text()
+
+        if not input_path or not output_path:
+            QMessageBox.critical(self, "錯誤", "請選擇輸入檔案路徑和輸出檔案檔名")
+            return
+
+        try:
+            generate_report(input_path, output_path)
+            QMessageBox.information(self, "成功", f"報告已成功生成！\n儲存於：{output_path}")
+        except Exception as e:
+            QMessageBox.critical(self, "錯誤", f"生成報告時發生錯誤：{e}")
 
 
-def output_file():
-    file_path = filedialog.asksaveasfilename(title="輸出檔案名", defaultextension=".xlsx", filetypes=(("Excel files", "*.xlsx"), ("All files", "*.*")))
-    output_file_var.set(file_path)
-
-
-def generate_report_handler():
-    input_path = input_file_var.get()
-    output_path = output_file_var.get()
-
-    if not input_path or not output_path:
-        messagebox.showerror("錯誤", "請選擇輸入檔案路徑和輸出檔案檔名")
-        return
-
-    try:
-        generate_report(input_path, output_path)
-        messagebox.showinfo("成功", f"報告已成功生成！\n儲存於：{output_path}")
-    except Exception as e:
-        messagebox.showerror("錯誤", f"生成報告時發生錯誤：{e}")
-
-
-root = tk.Tk()
-root.title("訂單整理")
-
-input_file_var = tk.StringVar()
-tk.Label(root, text="選擇輸入檔案：").grid(row=0, column=0, padx=10, pady=5, sticky="e")
-tk.Entry(root, textvariable=input_file_var, width=50).grid(row=0, column=1, padx=10, pady=5)
-tk.Button(root, text="瀏覽", command=select_input_file).grid(row=0, column=2, padx=10, pady=5)
-
-output_file_var = tk.StringVar()
-tk.Label(root, text="輸出檔案檔名：").grid(row=1, column=0, padx=10, pady=5, sticky="e")
-tk.Entry(root, textvariable=output_file_var, width=50).grid(row=1, column=1, padx=5, pady=5)
-
-tk.Button(root, text="生成報告", command=generate_report_handler, bg="green", fg="white").grid(row=2, column=1, pady=10)
-
-root.mainloop()
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    ex = App()
+    ex.show()
+    sys.exit(app.exec_())
