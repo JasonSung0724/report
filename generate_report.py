@@ -192,7 +192,7 @@ def process_shopline_orders(sorted_data):
         )
         new_rows.append(refer_order)
 
-    print(f"商品貨號空白故扣除筆數：{skip_order}")
+    print(f"\n商品貨號空白故扣除筆數：{skip_order}")
     return new_rows
 
 
@@ -221,11 +221,12 @@ def generate_report(input_data_path, output_path):
         print("Shopline 訂單處理")
         adress = CheckAdress(original_data_path=input_data_path)
         adress.check_adress()
+        print(f"\n原始資料筆數: {len(original_data.df)}")
         new_rows = process_shopline_orders(sorted_data)
     elif original_data_count >= 12:
         print("Mixx 訂單處理")
+        print(f"\n原始資料筆數: {len(original_data.df)}")
         new_rows = process_mixx_orders(sorted_data)
-    print(f"\n原始資料筆數: {len(original_data.df)}")
     print(f"\n最終筆數: {len(new_rows)}")
     print(f"\n總人數: {len(sorted_data['收件人'].unique())}")
 
