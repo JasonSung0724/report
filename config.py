@@ -2,9 +2,9 @@ import os
 
 
 class TargetShipping:
-    seven = "7-11低溫取貨（下單後  1~5 個工作天內出貨｜離島不配送）填寫完整門市名稱"
-    family = "全家低溫取貨（下單後  1~5 個工作天內出貨｜離島不配送）填寫完整門市名稱"
-    tacat = "低溫宅配（台灣本島）（下單後 1~5 個工作天內出貨）"
+    seven = "7-11低溫取貨"
+    family = "全家低溫取貨"
+    tacat = "低溫宅配"
 
 
 class CompanyName:

@@ -12,12 +12,16 @@ class ExcelController:
     def data_filter(self, conditions, index=None):
         filter_condition = None
         for column, value in conditions.items():
-            if filter_condition is None:
-                filter_condition = self.df[column] == value
+            if callable(value):
+                condition = self.df[column].apply(value)
             else:
-                filter_condition = filter_condition & (self.df[column] == value)
+                condition = self.df[column] == value
+            if filter_condition is None:
+                filter_condition = condition
+            else:
+                filter_condition = filter_condition & condition
         filtered_data = self.df[filter_condition]
-        if not filtered_data.empty and index:
+        if not filtered_data.empty and index is not None:
             return filtered_data.iloc[index]
         else:
             return filtered_data

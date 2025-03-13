@@ -9,14 +9,15 @@ from openpyxl.styles import Font
 
 
 def get_delivery_info(row, store_adress):
-    if row["送貨方式"] == TargetShipping.tacat:
+    if row["送貨方式"].split("（", 1)[0] == TargetShipping.tacat:
         return "Tcat", row["完整地址"]
-    elif row["送貨方式"] == TargetShipping.family:
+    elif row["送貨方式"].split("（", 1)[0] == TargetShipping.family:
         store_filter = store_adress.data_filter({"商店": CompanyName.family, "門市名稱": row["門市名稱"]})
         adress = "ERROR" if store_filter.empty else f"{row['門市名稱']} ({store_filter.get('地址').iloc[0]})"
         return "全家", adress
-    elif row["送貨方式"] == TargetShipping.seven:
+    elif row["送貨方式"].split("（", 1)[0] == TargetShipping.seven:
         store_filter = store_adress.data_filter({"商店": CompanyName.seven, "門市名稱": row["門市名稱"]})
+        print(store_filter)
         adress = "ERROR" if store_filter.empty else "(宅轉店)" + store_filter.get("地址").iloc[0]
         return "7-11", adress
     return "UNKNOWN", "ERROR"
@@ -230,6 +231,6 @@ def generate_report(input_data_path, output_path):
 
 if __name__ == "__main__":
     generate_report(
-        input_data_path=r"C:\Users\07711.Jason.Sung\OneDrive - Global ICT\文件\2025.03.12 減醣市集拋單31筆.xlsx",
+        input_data_path=r"/Users/jasonsung/Downloads",
         output_path="report2.xlsx",
     )

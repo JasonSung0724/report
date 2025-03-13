@@ -18,10 +18,10 @@ class CheckAdress:
         self.adress_file = ExcelController(FilePath.doc, sheet_name="store_location")
 
     def check_adress(self):
-        filtered_711 = self.original_data.data_filter({"送貨方式": TargetShipping.seven})
+        filtered_711 = self.original_data.data_filter({"送貨方式": lambda x: x.startswith(TargetShipping.seven)})
         all_store_711 = filtered_711["門市名稱"].unique()
         location_711 = self.fetch_lcation(company=CompanyName.seven, store_list=all_store_711)
-        filtered_family = self.original_data.data_filter({"送貨方式": TargetShipping.family})
+        filtered_family = self.original_data.data_filter({"送貨方式": lambda x: x.startswith(TargetShipping.family)})
         all_store_family = filtered_family["門市名稱"].unique()
         location_family = self.fetch_lcation(company=CompanyName.family, store_list=all_store_family)
         print(f"\n7-11地址\n{location_711}")

@@ -14,7 +14,6 @@ class App(QWidget):
 
         layout = QVBoxLayout()
 
-        # 輸入檔案
         self.input_label = QLabel("選擇輸入檔案：")
         self.input_field = QLineEdit(self)
         self.input_button = QPushButton("瀏覽", self)
@@ -24,14 +23,12 @@ class App(QWidget):
         layout.addWidget(self.input_field)
         layout.addWidget(self.input_button)
 
-        # 輸出檔案
         self.output_label = QLabel("輸出檔案檔名：")
         self.output_field = QLineEdit(self)
 
         layout.addWidget(self.output_label)
         layout.addWidget(self.output_field)
 
-        # 生成報告按鈕
         self.generate_button = QPushButton("生成報告", self)
         self.generate_button.clicked.connect(self.generate_report_handler)
 
