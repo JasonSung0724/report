@@ -24,8 +24,8 @@ class CheckAdress:
         filtered_family = self.original_data.data_filter({"送貨方式": lambda x: x.startswith(TargetShipping.family)})
         all_store_family = filtered_family["門市名稱"].unique()
         location_family = self.fetch_lcation(company=CompanyName.family, store_list=all_store_family)
-        print(f"\n7-11地址\n{location_711}")
-        print(f"\n全家地址\n{location_family}")
+        # print(f"\n7-11地址\n{location_711}")
+        # print(f"\n全家地址\n{location_family}")
         print(f"\n7-11筆數: {len(filtered_711['收件人'].unique())}\n{filtered_711['收件人'].unique()}")
         print(f"\n全家筆數: {len(filtered_family['收件人'].unique())}\n{filtered_family['收件人'].unique()}")
         return location_711, location_family
