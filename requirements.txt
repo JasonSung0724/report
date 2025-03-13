@@ -4,3 +4,4 @@ pandas
 xlrd
 openpyxl
 xlwt
+PyQt5
