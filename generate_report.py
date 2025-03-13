@@ -129,7 +129,7 @@ def process_shopline_orders(sorted_data):
     product_info = ExcelController(data_path=FilePath.doc, sheet_name="product")
     new_rows = []
     personal_order = []
-
+    skip_order = 0
     for _, row in sorted_data.iterrows():
         delivery_method, adress = get_delivery_info(row, store_adress)
         product_mark = "" if len(str(row["商品貨號"]).split("-")) < 3 else "-" + str(row["商品貨號"]).split("-")[2]
@@ -175,6 +175,9 @@ def process_shopline_orders(sorted_data):
             if len(row) > 17 and pd.notna(row.iloc[17]) and row.iloc[17] in ["下午到貨", "上午到貨"]:
                 new_row["到貨時段\n1: 13點前\n2: 14~18\n3: 不限時"] = 1 if str(row.iloc[17]) == "上午到貨" else 2
             new_rows.append(new_row)
+        else:
+            skip_order += 1
+            pass
 
     if personal_order:
         box_type, box_name = calculate_box_type(personal_order, product_info)
@@ -189,6 +192,7 @@ def process_shopline_orders(sorted_data):
         )
         new_rows.append(refer_order)
 
+    print(f"商品貨號空白故扣除筆數：{skip_order}")
     return new_rows
 
 
