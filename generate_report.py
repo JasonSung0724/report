@@ -17,7 +17,6 @@ def get_delivery_info(row, store_adress):
         return "全家", adress
     elif row["送貨方式"].split("（", 1)[0] == TargetShipping.seven:
         store_filter = store_adress.data_filter({"商店": CompanyName.seven, "門市名稱": row["門市名稱"]})
-        print(store_filter)
         adress = "ERROR" if store_filter.empty else "(宅轉店)" + store_filter.get("地址").iloc[0]
         return "7-11", adress
     return "UNKNOWN", "ERROR"
@@ -215,13 +214,13 @@ def generate_report(input_data_path, output_path):
     original_data_count = len(original_data.df.columns)
     sorted_data = original_data.df.sort_values(by="收件人", ascending=True)
     if original_data_count >= 17:
+        print("Shopline 訂單處理")
         adress = CheckAdress(original_data_path=input_data_path)
         adress.check_adress()
         new_rows = process_shopline_orders(sorted_data)
-        print("Shopline 訂單處理")
     elif original_data_count >= 12:
-        new_rows = process_mixx_orders(sorted_data)
         print("Mixx 訂單處理")
+        new_rows = process_mixx_orders(sorted_data)
     print(f"\n原始資料筆數: {len(original_data.df)}")
     print(f"\n最終筆數: {len(new_rows)}")
     print(f"\n總人數: {len(sorted_data['收件人'].unique())}")
