@@ -228,7 +228,7 @@ def generate_report(input_data_path, output_path):
         print(f"\n原始資料筆數: {len(original_data.df)}")
         new_rows = process_mixx_orders(sorted_data)
     print(f"\n最終筆數: {len(new_rows)}")
-    print(f"\n總人數: {len(sorted_data['收件人'].unique())}")
+    print(f"\n總訂單數: {len(sorted_data['訂單號碼'].unique())}")
 
     save_to_excel(new_rows, output_path)
 
