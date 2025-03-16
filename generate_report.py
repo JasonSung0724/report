@@ -223,12 +223,13 @@ def generate_report(input_data_path, output_path):
         adress.check_adress()
         print(f"\n原始資料筆數: {len(original_data.df)}")
         new_rows = process_shopline_orders(sorted_data)
-    elif original_data_count >= 12:
+    elif original_data_count >= 10:
         print("Mixx 訂單處理")
         print(f"\n原始資料筆數: {len(original_data.df)}")
         new_rows = process_mixx_orders(sorted_data)
     print(f"\n最終筆數: {len(new_rows)}")
-    print(f"\n總訂單數: {len(sorted_data['訂單號碼'].unique())}")
+    order_number = sorted_data["訂單號碼"] if "訂單號碼" in sorted_data else sorted_data["*銷售單號"]
+    print(f"\n總訂單數: {len(order_number.unique())}")
 
     save_to_excel(new_rows, output_path)
 
