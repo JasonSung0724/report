@@ -56,7 +56,7 @@ class CheckAdress:
             if len(existing_row) == 0:
                 new_row = pd.DataFrame({"商店": [company], "門市名稱": [store], "地址": [address]})
                 store_location_data.df = pd.concat([store_location_data.df, new_row], ignore_index=True)
-                print(f"新增7-11門市:「{store}」的資料地址: {address})")
+                print(f"新增{company}門市:「{store}」的資料地址: {address})")
 
             elif pd.isna(existing_row["地址"].values[0]) or existing_row["地址"].values[0] == "":
                 store_location_data.loc[(store_location_data["門市名稱"] == store) & (store_location_data["商店"] == company), "地址"] = address
