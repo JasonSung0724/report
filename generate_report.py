@@ -54,7 +54,7 @@ def format_date(order_time):
             date_time_format = order_time
         else:
             date_time_format = datetime.strptime(order_time, "%Y-%m-%d %H:%M:%S")
-        return date_time_format.strftime("%Y/%m/%d")
+        return date_time_format.strftime("%Y%m%d")
     except (ValueError, TypeError):
         return "INVALID_DATE"
 
