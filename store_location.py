@@ -1,14 +1,9 @@
 import pandas as pd
 from config import *
-from selenium.webdriver.chrome.service import Service
-from selenium import webdriver
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
-import time
 from excel_controller import ExcelController
+import requests
+import xml.etree.ElementTree as ET
+import json
 
 
 class CheckAdress:
@@ -74,93 +69,53 @@ class CheckAdress:
 class FindLocationOnWeb:
 
     def __init__(self):
-        self.driver = self.open_chrome()
-        self.wait = WebDriverWait(self.driver, 5)
-
-    def open_chrome(self):
-        options = webdriver.ChromeOptions()
-        # options.add_argument("--headless")
-        options.add_argument("--start-maximized")
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=options)
-        return driver
-
-    def web_wait(self):
-        self.wait.until(lambda d: d.execute_script("return document.readyState") == "complete")
+        pass
 
     def seven_location_script(self, store):
         store_location_dict = {}
-        try:
-            self.driver.get("https://emap.pcsc.com.tw/")
-            self.web_wait()
-            store_name_input = self.wait.until(EC.visibility_of_element_located((By.NAME, "shop_na")))
-            store_name_input.clear()
-            store_name_input.send_keys(store if "門市" not in store else store.split("門市")[0])
-            self.wait.until(EC.element_to_be_clickable((By.ID, "Image_store_name"))).click()
-            self.web_wait()
-            self.wait.until(EC.visibility_of_element_located((By.XPATH, "//*[@id='mytb']/tbody/tr")))
-            store_info_element = self.driver.find_elements(By.XPATH, "//*[@id='mytb']/tbody/tr")
-            if len(store_info_element) == 2:
-                location_table = store_info_element[1].find_element(By.XPATH, ".//table/tbody/tr[2]/td").text
-                location_text = location_table.split("\n")[0].split("：")[1].replace(" ", "")
-                store_location_dict[store] = location_text
-                self.driver.refresh()
-            else:
-                correct_store = False
-                warning = f"ERROR : 可能出現多間類似{store}的店名，無法確認地址"
-                for i in range(1, len(store_info_element)):
-                    store_name = location_table = store_info_element[i].find_element(By.XPATH, "./td").text
-                    if store_name == store.split("門市")[0]:
-                        location_table = store_info_element[i].find_element(By.XPATH, ".//table/tbody/tr[2]/td").text
-                        location_text = location_table.split("\n")[0].split("：")[1].replace(" ", "")
-                        correct_store = True
-                        break
-                store_location_dict[store] = warning if not correct_store else location_text
-                self.driver.refresh()
-        except Exception as e:
-            print(f"處理{store}門市時發生錯誤，{e}")
-            warning = f"ERROR : 無法確認{store}正確地址"
-            store_location_dict[store] = warning
-            self.driver.refresh()
+        input_name = store if "門市" not in store else store.split("門市")[0]
+        url = "https://emap.pcsc.com.tw/EMapSDK.aspx"
+        data = {
+            "commandid": "SearchStore",
+            "city": "",
+            "town": "",
+            "roadname": "",
+            "ID": "",
+            "StoreName": input_name,
+            "SpecialStore_Kind": "",
+            "leftMenuChecked": "",
+            "address": "",
+        }
+        response = requests.post(url, data=data)
+        xml_data = response.text
+        root = ET.fromstring(xml_data)
+        for geo_position in root.findall("GeoPosition"):
+            address = geo_position.find("Address").text
+            name = geo_position.find("POIName").text
+            if name == input_name:
+                store_location_dict[store] = address
+        if not store_location_dict:
+            store_location_dict[store] = f"ERROR : 無法確認{store}正確地址"
         return store_location_dict
 
     def family_location_script(self, store):
         store_location_dict = {}
-        try:
-            self.driver.get("https://www.family.com.tw/Marketing/zh/Map")
-            self.web_wait()
-            iframe = self.wait.until(EC.presence_of_element_located((By.ID, "map-iframe")))
-            self.driver.switch_to.frame(iframe)
-            store_name_input = self.wait.until(EC.visibility_of_element_located((By.ID, "shopName")))
-            store_name_input.clear()
-            store_name_input.send_keys(store)
-            self.wait.until(EC.element_to_be_clickable((By.ID, "shopNameSearch"))).click()
-            self.web_wait()
-            self.wait.until(EC.visibility_of_element_located((By.XPATH, "(//*[@id='showShopList']//tbody)[2]/tr")))
-            store_info_element = self.driver.find_elements(By.XPATH, "(//*[@id='showShopList']//tbody)[2]/tr")
-            if len(store_info_element) == 1:
-                location_table = store_info_element[0].text
-                find_adress = [info for info in location_table.split("\n") if "地址" in info]
-                location_text = find_adress[0].split("：")[1].replace(" ", "")
-                store_location_dict[store] = location_text
-                self.driver.refresh()
-            else:
-                correct_store = False
-                for i in range(len(store_info_element)):
-                    if store == store_info_element[i].find_element(By.XPATH, "./td").text:
-                        correct_store = True
-                        location_table = store_info_element[i].text
-                        find_adress = [info for info in location_table.split("\n") if "地址" in info]
-                        location_text = find_adress[0].split("：")[1].replace(" ", "")
-                        pass
-                warning = f"ERROR : 可能出現多間類似{store}的店名，無法確認地址"
-                store_location_dict[store] = warning if not correct_store else location_text
-                self.driver.refresh()
-        except Exception as e:
-            print(f"處理{store}門市時發生錯誤，{e}")
-            warning = f"ERROR : 無法確認{store}正確地址"
-            store_location_dict[store] = warning
-            self.driver.refresh()
+        url = "https://api.map.com.tw/net/familyShop.aspx"
+        params = {"searchType": "ShopName", "type": "", "kw": store, "fun": "getByName", "key": "6F30E8BF706D653965BDE302661D1241F8BE9EBC"}
+        headers = {
+            "Referer": "https://www.family.com.tw/",
+        }
+        response = requests.get(url, params=params, headers=headers)
+        start_index = response.text.find("[")
+        end_index = response.text.rfind("]") + 1
+        json_text = response.text[start_index:end_index]
+        data = json.loads(json_text)
+        for store_info in data:
+            if store == store_info["NAME"]:
+                store_location_dict[store] = store_info["addr"]
+
+        if not store_location_dict:
+            store_location_dict[store] = f"ERROR : 無法確認{store}正確地址"
         return store_location_dict
 
     def find_location(self, company, store_name_list):
