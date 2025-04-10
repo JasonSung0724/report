@@ -12,12 +12,12 @@ def get_delivery_info(row, store_adress):
     if row["送貨方式"].split("（", 1)[0] == TargetShipping.tacat:
         return "Tcat", row["完整地址"]
     elif row["送貨方式"].split("（", 1)[0] == TargetShipping.family:
-        store_filter = store_adress.data_filter({"商店": CompanyName.family, "門市名稱": row["門市名稱"]})
-        adress = "ERROR" if store_filter.empty else f"{row['門市名稱']} ({store_filter.get('地址').iloc[0]})"
+        adress = (
+            "ERROR" if row["門市名稱"] not in store_adress[CompanyName.family] else f"{row['門市名稱']} ({store_adress[CompanyName.family][row['門市名稱']]})"
+        )
         return "全家", adress
     elif row["送貨方式"].split("（", 1)[0] == TargetShipping.seven:
-        store_filter = store_adress.data_filter({"商店": CompanyName.seven, "門市名稱": row["門市名稱"]})
-        adress = "ERROR" if store_filter.empty else "(宅轉店)" + store_filter.get("地址").iloc[0]
+        adress = "ERROR" if row["門市名稱"] not in store_adress[CompanyName.seven] else "(宅轉店)" + store_adress[CompanyName.seven][row["門市名稱"]]
         return "7-11", adress
     return "UNKNOWN", "ERROR"
 
@@ -124,14 +124,13 @@ def process_mixx_orders(sorted_data):
     return new_rows
 
 
-def process_shopline_orders(sorted_data):
-    store_adress = ExcelController(data_path=FilePath.doc, sheet_name="store_location")
+def process_shopline_orders(sorted_data, address_info):
     product_info = ExcelController(data_path=FilePath.doc, sheet_name="product")
     new_rows = []
     personal_order = []
     skip_order = 0
     for _, row in sorted_data.iterrows():
-        delivery_method, adress = get_delivery_info(row, store_adress)
+        delivery_method, adress = get_delivery_info(row, address_info)
         product_mark = "" if len(str(row["商品貨號"]).split("-")) < 3 else "-" + str(row["商品貨號"]).split("-")[2]
         order_mark = "" if str(row["出貨備註"]) == "nan" else f"/{row['出貨備註']}"
         formatted_date = format_date(str(row["訂單日期"]))
@@ -220,9 +219,9 @@ def generate_report(input_data_path, output_path):
     if original_data_count >= 17:
         print("Shopline 訂單處理")
         adress = CheckAdress(original_data_path=input_data_path)
-        adress.check_adress()
+        loaction_info = adress.check_adress()
         print(f"\n原始資料筆數: {len(original_data.df)}")
-        new_rows = process_shopline_orders(sorted_data)
+        new_rows = process_shopline_orders(sorted_data, loaction_info)
     elif original_data_count >= 10:
         print("Mixx 訂單處理")
         print(f"\n原始資料筆數: {len(original_data.df)}")
@@ -236,6 +235,6 @@ def generate_report(input_data_path, output_path):
 
 if __name__ == "__main__":
     generate_report(
-        input_data_path=r"/Users/jasonsung/Downloads",
-        output_path="report2.xlsx",
+        input_data_path=r"/Users/jasonsung/Downloads/carbs_orders_20250402202303783001.xls",
+        output_path="123",
     )
