@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QLineEdit, QPushButton, QFileDialog, QVBoxLayout, QMessageBox
 import sys
-from generate_report import generate_report
+from generate_report import ReportGenerator
 
 
 class App(QWidget):
@@ -57,7 +57,11 @@ class App(QWidget):
             return
 
         try:
-            generate_report(input_path, output_path)
+            generator = ReportGenerator()
+            generator.generate_report(
+                input_data_path=input_path,
+                output_path=output_path,
+            )
             QMessageBox.information(self, "成功", f"報告已成功生成！\n儲存於：{output_path}")
         except Exception as e:
             QMessageBox.critical(self, "錯誤", f"生成報告時發生錯誤：{e}")
