@@ -348,6 +348,10 @@ class ReportGenerator:
             sorted_data = original_data.sort_values(by="收件者姓名", ascending=True)
             print("C2C 訂單處理")
             print(f"\n原始資料筆數: {len(original_data)}")
+            main_product_count = len(sorted_data[sorted_data["商品編號"] != "F2500000044"])
+            freebies_count = len(sorted_data[sorted_data["商品編號"] == "F2500000044"])
+            print(f"\n主商品數量: {main_product_count}")
+            print(f"\n贈品數量: {freebies_count}")
             new_rows = self.order_processor.process_c2c_orders(sorted_data)
 
         print(f"\n最終筆數: {len(new_rows)}")
