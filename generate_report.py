@@ -16,9 +16,9 @@ class ProductConfig:
     def search_product(self, search_value, search_type="mixx_name"):
         for product_code, product_info in self.config.items():
             if search_type == "mixx_name" and search_value in product_info.get("mixx_name", ""):
-                return product_code, product_info["qty"]
+                return product_code
             elif search_type == "c2c_code" and product_info.get("c2c_code") == search_value:
-                return product_code, product_info["qty"]
+                return product_code
         return None, None
 
 
@@ -129,7 +129,7 @@ class OrderProcessor:
         personal_order = []
 
         for _, row in sorted_data.iterrows():
-            product_code, qty = self.product_config.search_product(search_type="mixx_name", search_value=str(row["品名/規格"]).split("｜")[1])
+            product_code = self.product_config.search_product(search_type="mixx_name", search_value=str(row["品名/規格"]).split("｜")[1])
             order_mark = "" if str(row["備註"]) == "nan" else f"/{row['備註']}"
             formatted_date = self.format_date(datetime.now())
 
@@ -178,7 +178,7 @@ class OrderProcessor:
         for _, row in sorted_data.iterrows():
             if str(row["商品編號"]) == "F2500000044":
                 for i in range(2):
-                    product_code, qty = self.product_config.search_product(search_type="c2c_code", search_value=f"F2500000044-{i}")
+                    product_code = self.product_config.search_product(search_type="c2c_code", search_value=f"F2500000044-{i}")
                     order_mark = "" if str(row["出貨備註"]) == "nan" else f" | {row['出貨備註']}"
                     formatted_date = self.format_date(row["建立時間"])
 
@@ -206,7 +206,7 @@ class OrderProcessor:
                             personal_order = [new_row]
                         new_rows.append(new_row)
             else:
-                product_code, qty = self.product_config.search_product(search_type="c2c_code", search_value=str(row["商品編號"]))
+                product_code = self.product_config.search_product(search_type="c2c_code", search_value=str(row["商品編號"]))
                 order_mark = "" if str(row["出貨備註"]) == "nan" else f" | {row['出貨備註']}"
                 formatted_date = self.format_date(row["建立時間"])
 
