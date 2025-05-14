@@ -354,6 +354,10 @@ class ReportGenerator:
             print(f"\n贈品數量: {freebies_count}")
             new_rows = self.order_processor.process_c2c_orders(sorted_data)
 
+        else:
+            print("未知的訂單格式")
+            return
+
         print(f"\n最終筆數: {len(new_rows)}")
 
         if "訂單號碼" in sorted_data:
@@ -370,6 +374,6 @@ class ReportGenerator:
 if __name__ == "__main__":
     generator = ReportGenerator()
     generator.generate_report(
-        input_data_path=r"C:\Users\07711.Jason.Sung\OneDrive - Global ICT\文件\快電商XCHECK2CHECK-拋單追蹤-減醣市集-貝果.xlsx",
+        input_data_path=r"C:\Users\07711.Jason.Sung\OneDrive - Global ICT\文件\快電商XCHECK2CHECK-拋單追蹤-減醣市集-貝果 (7).xlsx",
         output_path="123",
     )
