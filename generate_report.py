@@ -44,7 +44,8 @@ class OrderProcessor:
                     with open("product_config.json", "r", encoding="utf-8") as f:
                         product_config = json.load(f)
                     qty = product_config[order["商品編號"]]["qty"]
-                    grand_total += qty * int(order["訂購數量"])
+                    order_quantity = int(float(order["訂購數量"]))
+                    grand_total += qty * order_quantity
             except ValueError as e:
                 print(f"處理商品編號 {order['商品編號']} 時發生錯誤: {e}")
                 raise
@@ -370,6 +371,6 @@ class ReportGenerator:
 if __name__ == "__main__":
     generator = ReportGenerator()
     generator.generate_report(
-        input_data_path=r"C:\Users\07711.Jason.Sung\OneDrive - Global ICT\文件\快電商XCHECK2CHECK-拋單追蹤-減醣市集-貝果.xlsx",
+        input_data_path=r"/Users/jasonsung/Downloads",
         output_path="123",
     )
