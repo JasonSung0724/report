@@ -355,6 +355,10 @@ class ReportGenerator:
             print(f"\n贈品數量: {freebies_count}")
             new_rows = self.order_processor.process_c2c_orders(sorted_data)
 
+        else:
+            print("未知的訂單格式")
+            return
+
         print(f"\n最終筆數: {len(new_rows)}")
 
         if "訂單號碼" in sorted_data:
