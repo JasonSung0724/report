@@ -75,7 +75,7 @@ class OrderProcessor:
         if order_type == "c2c":
             return {
                 "貨主編號": "A442",
-                "貨主單號\n(不同客戶端、不同溫層要分單)": str(base_data["平台訂單編號"]),
+                "貨主單號\n(不同客戶端、不同溫層要分單)": str(int(float(base_data["平台訂單編號"]))),
                 "客戶端代號(店號)": str(base_data["收件者姓名"]),
                 "訂購日期": formatted_date,
                 "商品編號": product_code,
