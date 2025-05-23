@@ -1,18 +1,48 @@
+from dataclasses import dataclass
+from typing import Dict, Any
+import json
 import os
 
 
-class TargetShipping:
-    seven = "7-11低溫取貨"
-    family = "全家低溫取貨"
-    tacat = "低溫宅配"
+@dataclass
+class FileConfig:
+    report_template: str = "report_template.xlsx"
+    product_config: str = "product_config.json"
 
 
-class CompanyName:
-    seven = "SEVEN"
-    family = "FAMILY"
-    tacat = "TACAT"
+@dataclass
+class ShippingConfig:
+    TACAT: str = "黑貓宅配"
+    FAMILY: str = "全家取貨"
+    SEVEN: str = "7-11取貨"
 
 
-class FilePath:
-    doc = os.path.join(os.getcwd(), "doc.xlsx")
-    report = os.path.join(os.getcwd(), "report_template.xlsx")
+@dataclass
+class CompanyConfig:
+    FAMILY: str = "全家便利商店"
+    SEVEN: str = "7-11"
+
+
+@dataclass
+class OrderConfig:
+    OWNER_ID: str = "A442"
+    TEMPERATURE: str = "003"  # 冷凍
+    DEFAULT_REMARK: str = "減醣市集"
+    C2C_REMARK: str = "減醣市集 X 快電商 C2C BUY"
+    SPECIAL_PRODUCT: str = "F2500000044"
+
+
+class Config:
+    def __init__(self):
+        self.file = FileConfig()
+        self.shipping = ShippingConfig()
+        self.company = CompanyConfig()
+        self.order = OrderConfig()
+
+    @staticmethod
+    def load_product_config() -> Dict[str, Any]:
+        with open(FileConfig.product_config, "r", encoding="utf-8") as f:
+            return json.load(f)
+
+
+config = Config()
