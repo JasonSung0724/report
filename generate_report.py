@@ -91,6 +91,6 @@ class ReportGenerator:
 if __name__ == "__main__":
     generator = ReportGenerator()
     generator.generate_report(
-        input_data_path=r"C:\Users\07711.Jason.Sung\OneDrive - Global ICT\文件\快電商XCHECK2CHECK-拋單追蹤-減醣市集-貝果 (13).xlsx",
+        input_data_path=r"C:\Users\07711.Jason.Sung\OneDrive - Global ICT\文件\快電商XCHECK2CHECK-拋單追蹤-減醣市集-貝果 (18).xlsx",
         output_path="output_report",
     )

@@ -12,9 +12,10 @@ class C2COrderProcessor(BaseOrderProcessor):
 
     def create_order_row(self, base_data: Dict[str, Any], product_code: str, order_mark: str, formatted_date: str) -> Dict[str, str]:
         base_row = self.create_base_order_row()
+        order_number = str(int(base_data["平台訂單編號"])) if not pd.isna(base_data["平台訂單編號"]) else ""
         base_row.update(
             {
-                "貨主單號\n(不同客戶端、不同溫層要分單)": str(base_data["平台訂單編號"]),
+                "貨主單號\n(不同客戶端、不同溫層要分單)": order_number,
                 "客戶端代號(店號)": str(base_data["收件者姓名"]),
                 "訂購日期": formatted_date,
                 "商品編號": product_code,
