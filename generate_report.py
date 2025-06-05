@@ -73,7 +73,7 @@ class OrderProcessor:
 
     def create_order_row(self, base_data, product_code, order_mark, formatted_date, order_type="c2c"):
         if order_type == "c2c":
-            order_number = str(int(base_data["平台訂單編號"])) if not pd.isna(base_data["平台訂單編號"]) else ""
+            order_number = str(base_data["平台訂單編號"]) if not pd.isna(base_data["平台訂單編號"]) else ""
             return {
                 "貨主編號": "A442",
                 "貨主單號\n(不同客戶端、不同溫層要分單)": order_number,
@@ -150,7 +150,6 @@ class OrderProcessor:
                 personal_order.clear()
 
             new_row = self.create_order_row(row, product_code, order_mark, formatted_date, "mixx")
-
             if str(row["*銷售單號"]) != "nan":
                 if not personal_order or personal_order[0]["貨主單號\n(不同客戶端、不同溫層要分單)"] == str(row["*銷售單號"]):
                     personal_order.append(new_row)
@@ -331,7 +330,7 @@ class ReportGenerator:
         if "." not in output_path:
             output_path += ".xlsx"
 
-        original_data = pd.read_excel(input_data_path)
+        original_data = pd.read_excel(input_data_path, dtype={"平台訂單編號": str, "小計數量": str})
         original_column_count = len(original_data.columns)
 
         if "收件人" in original_data.columns:
@@ -376,6 +375,6 @@ class ReportGenerator:
 if __name__ == "__main__":
     generator = ReportGenerator()
     generator.generate_report(
-        input_data_path=r"/Users/jasonsung/Downloads",
+        input_data_path=r"C:\Users\07711.Jason.Sung\OneDrive - Global ICT\文件\快電商XCHECK2CHECK-拋單追蹤-減醣市集-貝果 (20).xlsx",
         output_path="123",
     )
