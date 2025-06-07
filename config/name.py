@@ -1,5 +1,13 @@
 import os
+import json
 
+class ExcelFieldName:
+
+    @staticmethod
+    def get_config(platform):
+        with open("config/field.json", "r") as f:
+            field_config = json.load(f)
+        return field_config[platform]
 
 class TargetShipping:
     seven = "7-11低溫取貨"
@@ -14,5 +22,4 @@ class CompanyName:
 
 
 class FilePath:
-    doc = os.path.join(os.getcwd(), "doc.xlsx")
     report = os.path.join(os.getcwd(), "report_template.xlsx")

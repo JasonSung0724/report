@@ -1,5 +1,5 @@
 import pandas as pd
-from config import *
+from config.name import *
 from excel_controller import ExcelController
 import requests
 import xml.etree.ElementTree as ET

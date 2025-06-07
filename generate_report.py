@@ -1,11 +1,13 @@
 import pandas as pd
 from store_location import CheckAdress
-from config import FilePath, TargetShipping, CompanyName
+from config.name import FilePath, TargetShipping, CompanyName
 from openpyxl import load_workbook
 from datetime import datetime
 import os
 from openpyxl.styles import Font
 import json
+from get_excel import GetExcelData
+from config.name import ExcelFieldName
 
 
 class ProductConfig:
@@ -326,55 +328,39 @@ class ReportGenerator:
 
         wb.save(output_path)
 
-    def generate_report(self, input_data_path, output_path):
+    def generate_report(self, input_data_path, output_path, platform):
         if "." not in output_path:
             output_path += ".xlsx"
+        excel = GetExcelData(input_data_path, platform)
+        org_data = excel()
+        field_config = ExcelFieldName.get_config(platform)
+        product_code = field_config["product_code"]
+        order_id_name = field_config["order_id"]
 
-        original_data = pd.read_excel(input_data_path, dtype={"平台訂單編號": str, "小計數量": str})
-        original_column_count = len(original_data.columns)
-
-        if "收件人" in original_data.columns:
-            sorted_data = original_data.sort_values(by="收件人", ascending=True)
-            if original_column_count >= 17:
-                print("Shopline 訂單處理")
-                adress = CheckAdress(original_data_path=input_data_path)
-                loaction_info = adress.check_adress()
-                print(f"\n原始資料筆數: {len(original_data)}")
-                new_rows = self.order_processor.process_shopline_orders(sorted_data, loaction_info)
-            elif original_column_count >= 10:
-                print("Mixx 訂單處理")
-                print(f"\n原始資料筆數: {len(original_data)}")
-                new_rows = self.order_processor.process_mixx_orders(sorted_data)
-        elif "收件者姓名" in original_data.columns:
-            sorted_data = original_data.sort_values(by="收件者姓名", ascending=True)
-            print("C2C 訂單處理")
-            print(f"\n原始資料筆數: {len(original_data)}")
-            main_product_count = len(sorted_data[sorted_data["商品編號"] != "F2500000044"])
-            freebies_count = len(sorted_data[sorted_data["商品編號"] == "F2500000044"])
+        if platform == "shopline":
+            adress = CheckAdress(original_data_path=input_data_path)
+            loaction_info = adress.check_adress()
+            new_rows = self.order_processor.process_shopline_orders(org_data, loaction_info)
+        elif platform == "mixx":
+            new_rows = self.order_processor.process_mixx_orders(org_data)
+        elif platform == "c2c":
+            main_product_count = len(org_data[org_data[product_code] != "F2500000044"])
+            freebies_count = len(org_data[org_data[product_code] == "F2500000044"])
             print(f"\n主商品數量: {main_product_count}")
             print(f"\n贈品數量: {freebies_count}")
-            new_rows = self.order_processor.process_c2c_orders(sorted_data)
-
-        else:
-            print("未知的訂單格式")
-            return
+            new_rows = self.order_processor.process_c2c_orders(org_data)
 
         print(f"\n最終筆數: {len(new_rows)}")
 
-        if "訂單號碼" in sorted_data:
-            order_number = sorted_data["訂單號碼"]
-        elif "平台訂單編號" in sorted_data:
-            order_number = sorted_data["平台訂單編號"]
-        elif "*銷售單號" in sorted_data:
-            order_number = sorted_data["*銷售單號"]
 
-        print(f"\n總訂單數: {len(order_number.unique())}")
+        print(f"\n總訂單數: {len(org_data[order_id_name].unique())}")
         self.save_to_excel(new_rows, output_path)
 
 
 if __name__ == "__main__":
     generator = ReportGenerator()
     generator.generate_report(
-        input_data_path=r"C:\Users\07711.Jason.Sung\OneDrive - Global ICT\文件\快電商XCHECK2CHECK-拋單追蹤-減醣市集-貝果 (20).xlsx",
+        input_data_path=r"/Users/jasonsung/Downloads/2025.04.09 減醣市集拋單110筆.xlsx",
         output_path="123",
+        platform="mixx"
     )

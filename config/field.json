@@ -1,0 +1,34 @@
+{
+    "c2c":{
+        "columns": ["填單日期","建立時間","平台訂單編號","交易序號","收件者姓名","收件者手機","收件者地址","商品編號","商品樣式","小計數量","交易金額","出貨備註","廠商發貨日期","配送編號-已出貨","狀態回填-已送達"],
+        "create_time": "建立時間",
+        "order_id": "平台訂單編號",
+        "receiver_name": "收件者姓名",
+        "receiver_phone": "收件者手機",
+        "receiver_address": "收件者地址",
+        "product_code": "商品編號",
+        "product_quantity": "小計數量",
+        "order_mark": "出貨備註"
+    },
+    "shopline":{
+        "columns":["訂單號碼","訂單日期","訂單狀態","付款狀態","訂單備註","送貨方式","送貨狀態","收件人","收件人電話號碼","門市名稱","商品貨號","商品名稱","選項","數量","完整地址","管理員備註","出貨備註","到貨時間"],
+        "order_id": "訂單號碼",
+        "order_date": "訂單日期",
+        "delivery_method": "送貨方式",
+        "receiver_name": "收件人",
+        "receiver_phone": "收件人電話號碼",
+        "store_name": "門市名稱",
+        "product_code": "商品貨號",
+        "product_name": "商品名稱",
+        "product_quantity": "數量"
+    },
+    "mixx":{
+        "columns":["*銷售單號","收件人","收件人手機","收件地址","品名/規格","採購數量","銷售單價","小計","運費","備註","配送物流","寄件查詢編號"],
+        "order_id": "*銷售單號",
+        "receiver_name": "收件人",
+        "receiver_phone": "收件人手機",
+        "receiver_address": "收件地址",
+        "product_code": "品名/規格",
+        "product_quantity": "採購數量"
+    }
+}
