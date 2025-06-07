@@ -9,11 +9,12 @@ class GetExcelData:
 
     def check_excel(self):
         data = self.open_file()
-        if list(data.columns) == self.field_config["columns"]:
+        current_columns = [column for column in list(data.columns) if column.startswith("Unnamed:") == False]
+        if current_columns == self.field_config["columns"]:
             receiver_name = self.field_config["receiver_name"]
             sorted_data = data.sort_values(by=receiver_name, ascending=True)
-            print(f"原始資料數量: {len(data)}")
-            print(f"處理{self.platform.upper()}訂單")
+            print(f"\n處理{self.platform.upper()}訂單\n")
+            print(f"原始資料數量: {len(data)}\n")
             return sorted_data
         else:
             raise ValueError(f"檔案欄位與預期不符: {list(data.columns)}")
