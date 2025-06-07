@@ -375,6 +375,6 @@ class ReportGenerator:
 if __name__ == "__main__":
     generator = ReportGenerator()
     generator.generate_report(
-        input_data_path=r"C:\Users\07711.Jason.Sung\OneDrive - Global ICT\文件\快電商XCHECK2CHECK-拋單追蹤-減醣市集-貝果 (20).xlsx",
+        input_data_path=r"/Users/jasonsung/Downloads/2025.04.09 減醣市集拋單110筆.xlsx",
         output_path="123",
     )
