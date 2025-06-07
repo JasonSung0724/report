@@ -1,5 +1,5 @@
 import pandas as pd
-from config import *
+from config.name import *
 from excel_controller import ExcelController
 import requests
 import xml.etree.ElementTree as ET
@@ -33,8 +33,7 @@ class CheckAdress:
         if find_stores:
             script = FindLocationOnWeb()
             found_location = script.find_location(company=company, store_name_list=find_stores)
-
-        return found_location
+            return found_location
 
 
 class FindLocationOnWeb:

@@ -1,32 +1,36 @@
+from typing import Dict, List, Tuple, Optional
 import pandas as pd
 from store_location import CheckAdress
-from config import FilePath, TargetShipping, CompanyName
+from config.name import FilePath, TargetShipping, CompanyName, ExcelFieldName
 from openpyxl import load_workbook
+from openpyxl.styles import Font, Alignment, PatternFill
 from datetime import datetime
 import os
-from openpyxl.styles import Font
 import json
+from get_excel import GetExcelData
 
 
 class ProductConfig:
     def __init__(self):
         with open("product_config.json", "r", encoding="utf-8") as f:
-            self.config = json.load(f)
+            self.config: Dict = json.load(f)
 
-    def search_product(self, search_value, search_type="mixx_name"):
+    def search_product(self, search_value: str, search_type: str = "mixx_name") -> Tuple[Optional[str], Optional[str]]:
         for product_code, product_info in self.config.items():
             if search_type == "mixx_name" and search_value in product_info.get("mixx_name", ""):
-                return product_code
+                return product_code, None
             elif search_type == "c2c_code" and product_info.get("c2c_code") == search_value:
-                return product_code
+                return product_code, None
         return None, None
-
-
-class OrderProcessor:
-    def __init__(self):
+    
+class OrderDataHandler:
+    def __init__(self, platform: str):
+        self.field_config = ExcelFieldName.get_config(platform)
+        self.platform = platform
         self.product_config = ProductConfig()
-
-    def format_date(self, order_time):
+    
+    @staticmethod
+    def format_date(order_time: str) -> str:
         try:
             if isinstance(order_time, datetime):
                 date_time_format = order_time
@@ -35,121 +39,137 @@ class OrderProcessor:
             return date_time_format.strftime("%Y%m%d")
         except (ValueError, TypeError):
             return "INVALID_DATE"
+    
+    def get_field_value(self, row: pd.Series, field_name: str) -> str:
+        return str(row[self.field_config[field_name]])
+    
+    def get_product_code(self, row: pd.Series) -> str:
+        if self.platform == "mixx":
+            return self.product_config.search_product(
+                search_type="mixx_name",
+                search_value=str(row["品名/規格"]).split("｜")[1]
+            )[0]
+        elif self.platform == "c2c":
+            return self.product_config.search_product(
+                search_type="c2c_code",
+                search_value=str(row["商品編號"])
+            )[0]
+        elif self.platform == "shopline":
+            return str(row[self.field_config["product_code"]])
+        return ""
+    
+    def get_order_mark(self, row: pd.Series) -> str:
+        platform_marks = {
+            "c2c": ("減醣市集 X 快電商 C2C BUY", "出貨備註", " | "),
+            "shopline": ("減醣市集", "出貨備註", "/"),
+            "mixx": ("減醣市集", "備註", "/")
+        }
+        
+        if self.platform in platform_marks:
+            prefix, note_field, separator = platform_marks[self.platform]
+            note = str(row[note_field])
+            return f"{prefix}{'' if note == 'nan' else f'{separator}{note}'}"
+        return ""
+    
+    def get_formatted_date(self, row: pd.Series) -> str:
+        date_mapping = {
+            "c2c": lambda r: self.format_date(r["建立時間"]),
+            "shopline": lambda r: self.format_date(r["訂單日期"]),
+            "mixx": lambda _: self.format_date(datetime.now())
+        }
+        return date_mapping.get(self.platform, lambda _: "")(row)
 
-    def calculate_box_type(self, personal_order):
-        grand_total = 0
-        for order in personal_order:
-            try:
+class OrderProcessor:
+    def __init__(self, platform: str):
+        self.platform = platform
+        self.data_handler = OrderDataHandler(platform)
+        self.product_config = ProductConfig()
+
+    def calculate_box_type(self, orders: List[Dict]) -> Tuple[str, str]:
+        try:
+            grand_total = 0
+            for order in orders:
                 if str(order["商品編號"]) and str(order["商品編號"]) != "nan":
                     with open("product_config.json", "r", encoding="utf-8") as f:
                         product_config = json.load(f)
                     qty = product_config[order["商品編號"]]["qty"]
                     order_quantity = int(float(order["訂購數量"]))
                     grand_total += qty * order_quantity
-            except ValueError as e:
-                print(f"處理商品編號 {order['商品編號']} 時發生錯誤: {e}")
-                raise
 
-        if grand_total <= 14:
-            return "box60-EA", "60公分紙箱"
-        elif grand_total <= 47:
-            return "box90-EA", "90公分紙箱"
-        return "ERROR-需拆單", "ERROR-需拆單"
+            if grand_total <= 14:
+                return "box60-EA", "60公分紙箱"
+            elif grand_total <= 47:
+                return "box90-EA", "90公分紙箱"
+            return "ERROR-需拆單", "ERROR-需拆單"
+        except ValueError as e:
+            print(f"處理商品編號時發生錯誤: {e}")
+            raise
 
-    def get_delivery_info(self, row, store_adress):
-        if row["送貨方式"].split("（", 1)[0] == TargetShipping.tacat:
+    def get_delivery_info(self, row: pd.Series, store_address: Dict) -> Tuple[str, str]:
+        delivery_method = row["送貨方式"].split("（", 1)[0]
+        
+        if delivery_method == TargetShipping.tacat:
             return "Tcat", row["完整地址"]
-        elif row["送貨方式"].split("（", 1)[0] == TargetShipping.family:
-            adress = (
-                "ERROR"
-                if row["門市名稱"] not in store_adress[CompanyName.family]
-                else f"{row['門市名稱']} ({store_adress[CompanyName.family][row['門市名稱']]})"
-            )
-            return "全家", adress
-        elif row["送貨方式"].split("（", 1)[0] == TargetShipping.seven:
-            adress = "ERROR" if row["門市名稱"] not in store_adress[CompanyName.seven] else "(宅轉店)" + store_adress[CompanyName.seven][row["門市名稱"]]
-            return "7-11", adress
+        elif delivery_method == TargetShipping.family:
+            store_name = row["門市名稱"]
+            if store_name not in store_address[CompanyName.family]:
+                return "全家", "ERROR"
+            return "全家", f"{store_name} ({store_address[CompanyName.family][store_name]})"
+        elif delivery_method == TargetShipping.seven:
+            store_name = row["門市名稱"]
+            if store_name not in store_address[CompanyName.seven]:
+                return "7-11", "ERROR"
+            return "7-11", f"(宅轉店){store_address[CompanyName.seven][store_name]}"
         return "UNKNOWN", "ERROR"
 
-    def create_order_row(self, base_data, product_code, order_mark, formatted_date, order_type="c2c"):
-        if order_type == "c2c":
-            order_number = str(base_data["平台訂單編號"]) if not pd.isna(base_data["平台訂單編號"]) else ""
-            return {
-                "貨主編號": "A442",
-                "貨主單號\n(不同客戶端、不同溫層要分單)": order_number,
-                "客戶端代號(店號)": str(base_data["收件者姓名"]),
-                "訂購日期": formatted_date,
-                "商品編號": product_code,
-                "商品名稱": str(base_data["商品樣式"]).replace("-F", ""),
-                "訂購數量": str(base_data["小計數量"]),
-                "配送方式\nFT : 逢泰配送\nTcat : 黑貓宅配\n全家到府取貨": "Tcat",
-                "收貨人姓名": str(base_data["收件者姓名"]),
-                "收貨人地址": str(base_data["收件者地址"]),
-                "收貨人聯絡電話": str(base_data["收件者手機"]),
-                "訂單 / 宅配單備註": "減醣市集 X 快電商 C2C BUY" + order_mark,
-                "品項備註": "",
-                "指定配送溫層\n001：常溫\n002：冷藏\n003：冷凍": "003",
-            }
-        elif order_type == "mixx":
-            return {
-                "貨主編號": "A442",
-                "貨主單號\n(不同客戶端、不同溫層要分單)": str(base_data["*銷售單號"]),
-                "客戶端代號(店號)": str(base_data["收件人"]),
-                "訂購日期": formatted_date,
-                "商品編號": product_code,
-                "商品名稱": str(base_data["品名/規格"]),
-                "訂購數量": str(base_data["採購數量"]),
-                "配送方式\nFT : 逢泰配送\nTcat : 黑貓宅配\n全家到府取貨": "Tcat",
-                "收貨人姓名": str(base_data["收件人"]),
-                "收貨人地址": str(base_data["收件地址"]),
-                "收貨人聯絡電話": str(base_data["收件人手機"]),
-                "訂單 / 宅配單備註": "減醣市集" + order_mark,
-                "品項備註": "",
-                "指定配送溫層\n001：常溫\n002：冷藏\n003：冷凍": "003",
-            }
-        elif order_type == "shopline":
-            return {
-                "貨主編號": "A442",
-                "貨主單號\n(不同客戶端、不同溫層要分單)": str(base_data["訂單號碼"]),
-                "客戶端代號(店號)": str(base_data["收件人"]),
-                "訂購日期": formatted_date,
-                "預計到貨日": "",
-                "商品編號": str(base_data["商品貨號"]),
-                "商品名稱": f"{base_data['商品名稱']}",
-                "訂購數量": str(base_data["數量"]),
-                "配送方式\nFT : 逢泰配送\nTcat : 黑貓宅配\n全家到府取貨": base_data["delivery_method"],
-                "收貨人姓名": str(base_data["收件人"]),
-                "收貨人地址": base_data["address"],
-                "收貨人聯絡電話": str(base_data["收件人電話號碼"]),
-                "訂單 / 宅配單備註": "減醣市集" + order_mark,
-                "品項備註": "",
-                "指定配送溫層\n001：常溫\n002：冷藏\n003：冷凍": "003",
-            }
+    def create_order_row(self, row: pd.Series) -> Dict:
+        return {
+            "貨主編號": "A442",
+            "貨主單號\n(不同客戶端、不同溫層要分單)": self.data_handler.get_field_value(row, "order_id"),
+            "客戶端代號(店號)": self.data_handler.get_field_value(row, "receiver_name"),
+            "訂購日期": self.data_handler.get_formatted_date(row),
+            "商品編號": self.data_handler.get_product_code(row),
+            "商品名稱": self.data_handler.get_field_value(row, "product_name").replace("-F", ""),
+            "訂購數量": self.data_handler.get_field_value(row, "product_quantity"),
+            "配送方式\nFT : 逢泰配送\nTcat : 黑貓宅配\n全家到府取貨": "Tcat",
+            "收貨人姓名": self.data_handler.get_field_value(row, "receiver_name"),
+            "收貨人地址": row["address"] if self.platform == "shopline" else self.data_handler.get_field_value(row, "receiver_address"),
+            "收貨人聯絡電話": self.data_handler.get_field_value(row, "receiver_phone"),
+            "訂單 / 宅配單備註": self.data_handler.get_order_mark(row),
+            "指定配送溫層\n001：常溫\n002：冷藏\n003：冷凍": "003",
+            "品項備註": "",
+        }
 
-    def process_mixx_orders(self, sorted_data):
+    def process_orders(self, data: pd.DataFrame, store_address: Optional[Dict] = None) -> List[Dict]:
+        if self.platform == "shopline":
+            return self._process_shopline_orders(data, store_address)
+        elif self.platform == "mixx":
+            return self._process_mixx_orders(data)
+        elif self.platform == "c2c":
+            return self._process_c2c_orders(data)
+        return []
+
+    def _add_box_to_order(self, personal_order: List[Dict]) -> Dict:
+        box_type, box_name = self.calculate_box_type(personal_order)
+        box_row = personal_order[0].copy()
+        box_row.update({
+            "商品編號": box_type,
+            "商品名稱": box_name,
+            "訂購數量": "1",
+            "品項備註": "箱子",
+        })
+        return box_row
+
+    def _process_mixx_orders(self, data: pd.DataFrame) -> List[Dict]:
         new_rows = []
         personal_order = []
 
-        for _, row in sorted_data.iterrows():
-            product_code = self.product_config.search_product(search_type="mixx_name", search_value=str(row["品名/規格"]).split("｜")[1])
-            order_mark = "" if str(row["備註"]) == "nan" else f"/{row['備註']}"
-            formatted_date = self.format_date(datetime.now())
-
+        for _, row in data.iterrows():
             if personal_order and personal_order[0]["貨主單號\n(不同客戶端、不同溫層要分單)"] != str(row["*銷售單號"]):
-                box_type, box_name = self.calculate_box_type(personal_order)
-                refer_order = personal_order[0].copy()
-                refer_order.update(
-                    {
-                        "商品編號": box_type,
-                        "商品名稱": box_name,
-                        "訂購數量": "1",
-                        "品項備註": "箱子",
-                    }
-                )
-                new_rows.append(refer_order)
+                new_rows.append(self._add_box_to_order(personal_order))
                 personal_order.clear()
 
-            new_row = self.create_order_row(row, product_code, order_mark, formatted_date, "mixx")
+            new_row = self.create_order_row(row)
             if str(row["*銷售單號"]) != "nan":
                 if not personal_order or personal_order[0]["貨主單號\n(不同客戶端、不同溫層要分單)"] == str(row["*銷售單號"]):
                     personal_order.append(new_row)
@@ -158,46 +178,22 @@ class OrderProcessor:
                 new_rows.append(new_row)
 
         if personal_order:
-            box_type, box_name = self.calculate_box_type(personal_order)
-            refer_order = personal_order[0].copy()
-            refer_order.update(
-                {
-                    "商品編號": box_type,
-                    "商品名稱": box_name,
-                    "訂購數量": "1",
-                    "品項備註": "箱子",
-                }
-            )
-            new_rows.append(refer_order)
+            new_rows.append(self._add_box_to_order(personal_order))
 
         return new_rows
 
-    def process_c2c_orders(self, sorted_data):
+    def _process_c2c_orders(self, data: pd.DataFrame) -> List[Dict]:
         new_rows = []
         personal_order = []
 
-        for _, row in sorted_data.iterrows():
+        for _, row in data.iterrows():
             if str(row["商品編號"]) == "F2500000044":
                 for i in range(2):
-                    product_code = self.product_config.search_product(search_type="c2c_code", search_value=f"F2500000044-{i}")
-                    order_mark = "" if str(row["出貨備註"]) == "nan" else f" | {row['出貨備註']}"
-                    formatted_date = self.format_date(row["建立時間"])
-
                     if personal_order and personal_order[0]["貨主單號\n(不同客戶端、不同溫層要分單)"] != str(row["平台訂單編號"]):
-                        box_type, box_name = self.calculate_box_type(personal_order)
-                        refer_order = personal_order[0].copy()
-                        refer_order.update(
-                            {
-                                "商品編號": box_type,
-                                "商品名稱": box_name,
-                                "訂購數量": "1",
-                                "品項備註": "箱子",
-                            }
-                        )
-                        new_rows.append(refer_order)
+                        new_rows.append(self._add_box_to_order(personal_order))
                         personal_order.clear()
 
-                    new_row = self.create_order_row(row, product_code, order_mark, formatted_date, "c2c")
+                    new_row = self.create_order_row(row)
                     new_row["商品名稱"] = str(row["商品樣式"]).replace("(贈品)-F", "").split("+")[i]
 
                     if str(row["平台訂單編號"]) != "nan":
@@ -207,25 +203,11 @@ class OrderProcessor:
                             personal_order = [new_row]
                         new_rows.append(new_row)
             else:
-                product_code = self.product_config.search_product(search_type="c2c_code", search_value=str(row["商品編號"]))
-                order_mark = "" if str(row["出貨備註"]) == "nan" else f" | {row['出貨備註']}"
-                formatted_date = self.format_date(row["建立時間"])
-
                 if personal_order and personal_order[0]["貨主單號\n(不同客戶端、不同溫層要分單)"] != str(row["平台訂單編號"]):
-                    box_type, box_name = self.calculate_box_type(personal_order)
-                    refer_order = personal_order[0].copy()
-                    refer_order.update(
-                        {
-                            "商品編號": box_type,
-                            "商品名稱": box_name,
-                            "訂購數量": "1",
-                            "品項備註": "箱子",
-                        }
-                    )
-                    new_rows.append(refer_order)
+                    new_rows.append(self._add_box_to_order(personal_order))
                     personal_order.clear()
 
-                new_row = self.create_order_row(row, product_code, order_mark, formatted_date, "c2c")
+                new_row = self.create_order_row(row)
 
                 if str(row["平台訂單編號"]) != "nan":
                     if not personal_order or personal_order[0]["貨主單號\n(不同客戶端、不同溫層要分單)"] == str(row["平台訂單編號"]):
@@ -235,48 +217,26 @@ class OrderProcessor:
                     new_rows.append(new_row)
 
         if personal_order:
-            box_type, box_name = self.calculate_box_type(personal_order)
-            refer_order = personal_order[0].copy()
-            refer_order.update(
-                {
-                    "商品編號": box_type,
-                    "商品名稱": box_name,
-                    "訂購數量": "1",
-                    "品項備註": "箱子",
-                }
-            )
-            new_rows.append(refer_order)
+            new_rows.append(self._add_box_to_order(personal_order))
 
         return new_rows
 
-    def process_shopline_orders(self, sorted_data, address_info):
+    def _process_shopline_orders(self, data: pd.DataFrame, store_address: Dict) -> List[Dict]:
         new_rows = []
         personal_order = []
         skip_order = 0
 
-        for _, row in sorted_data.iterrows():
-            delivery_method, address = self.get_delivery_info(row, address_info)
+        for _, row in data.iterrows():
+            delivery_method, address = self.get_delivery_info(row, store_address)
             product_mark = "" if len(str(row["商品貨號"]).split("-")) < 3 else "-" + str(row["商品貨號"]).split("-")[2]
-            order_mark = "" if str(row["出貨備註"]) == "nan" else f"/{row['出貨備註']}"
-            formatted_date = self.format_date(str(row["訂單日期"]))
 
             if personal_order and personal_order[0]["貨主單號\n(不同客戶端、不同溫層要分單)"] != str(row["訂單號碼"]):
-                box_type, box_name = self.calculate_box_type(personal_order)
-                refer_order = personal_order[0].copy()
-                refer_order.update(
-                    {
-                        "商品編號": box_type,
-                        "商品名稱": box_name,
-                        "訂購數量": "1",
-                        "品項備註": "箱子",
-                    }
-                )
-                new_rows.append(refer_order)
+                new_rows.append(self._add_box_to_order(personal_order))
                 personal_order.clear()
 
-            row_data = row.to_dict()
-            row_data.update({"delivery_method": delivery_method, "address": address, "product_mark": product_mark})
-            new_row = self.create_order_row(row_data, None, order_mark, formatted_date, "shopline")
+            row_data = row.copy()
+            row_data["address"] = address
+            new_row = self.create_order_row(row_data)
             new_row["商品名稱"] = f"{row['商品名稱']}{product_mark}"
 
             if str(row["商品貨號"]) != "nan":
@@ -291,90 +251,108 @@ class OrderProcessor:
                 skip_order += 1
 
         if personal_order:
-            box_type, box_name = self.calculate_box_type(personal_order)
-            refer_order = personal_order[0].copy()
-            refer_order.update(
-                {
-                    "商品編號": box_type,
-                    "商品名稱": box_name,
-                    "訂購數量": "1",
-                    "品項備註": "箱子",
-                }
-            )
-            new_rows.append(refer_order)
+            new_rows.append(self._add_box_to_order(personal_order))
 
-        print(f"\n商品貨號空白故扣除筆數：{skip_order}")
+        if skip_order > 0:
+            print(f"\n商品貨號空白故扣除筆數：{skip_order}")
+
         return new_rows
 
 
 class ReportGenerator:
     def __init__(self):
-        self.order_processor = OrderProcessor()
+        self.product_config = ProductConfig()
 
-    def save_to_excel(self, new_rows, output_path):
+    def apply_cell_format(self, cell):
+        is_error = isinstance(cell.value, str) and "ERROR" in cell.value
+        is_nan = isinstance(cell.value, str) and cell.value.lower() == "nan"
+        
+        cell.font = Font(
+            name='微軟正黑體',
+            size=11,
+            bold=is_nan,
+            color="FF0000" if (is_error or is_nan) else "000000"
+        )
+        
+        cell.alignment = Alignment(
+            horizontal='left',
+            vertical='center',
+            wrap_text=True
+        )
+
+    def auto_adjust_dimensions(self, sheet):
+        for column in sheet.columns:
+            max_length = 0
+            column = list(column)
+            for cell in column[1:]:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            sheet.column_dimensions[column[0].column_letter].width = adjusted_width
+
+        for row in sheet.rows:
+            max_height = 0
+            for cell in row:
+                if cell.value:
+                    lines = str(cell.value).count('\n') + 1
+                    required_height = lines * 15
+                    max_height = max(max_height, required_height)
+            if max_height > 0:
+                sheet.row_dimensions[cell.row].height = max_height
+
+    def save_to_excel(self, rows: List[Dict], output_path: str):
         wb = load_workbook(FilePath.report)
         sheet = wb.active
         template_columns = [cell.value for cell in sheet[1]]
-        processed_rows = [{col: row.get(col, "") for col in template_columns} for row in new_rows]
-        new_data = pd.DataFrame(processed_rows)
 
-        for i, row in enumerate(new_data.values, start=2):
+        processed_rows = [{col: row.get(col, "") for col in template_columns} for row in rows]
+        df = pd.DataFrame(processed_rows)
+
+        for i, row in enumerate(df.values, start=2):
             for j, value in enumerate(row, start=1):
                 cell = sheet.cell(row=i, column=j, value=value)
-                if isinstance(value, str) and "ERROR" in value:
-                    cell.font = Font(color="FF0000")
+                self.apply_cell_format(cell)
 
+        self.auto_adjust_dimensions(sheet)
         wb.save(output_path)
 
-    def generate_report(self, input_data_path, output_path):
+    def generate_report(self, input_data_path: str, output_path: str, platform: str):
         if "." not in output_path:
             output_path += ".xlsx"
 
-        original_data = pd.read_excel(input_data_path, dtype={"平台訂單編號": str, "小計數量": str})
-        original_column_count = len(original_data.columns)
-
-        if "收件人" in original_data.columns:
-            sorted_data = original_data.sort_values(by="收件人", ascending=True)
-            if original_column_count >= 17:
-                print("Shopline 訂單處理")
-                adress = CheckAdress(original_data_path=input_data_path)
-                loaction_info = adress.check_adress()
-                print(f"\n原始資料筆數: {len(original_data)}")
-                new_rows = self.order_processor.process_shopline_orders(sorted_data, loaction_info)
-            elif original_column_count >= 10:
-                print("Mixx 訂單處理")
-                print(f"\n原始資料筆數: {len(original_data)}")
-                new_rows = self.order_processor.process_mixx_orders(sorted_data)
-        elif "收件者姓名" in original_data.columns:
-            sorted_data = original_data.sort_values(by="收件者姓名", ascending=True)
-            print("C2C 訂單處理")
-            print(f"\n原始資料筆數: {len(original_data)}")
-            main_product_count = len(sorted_data[sorted_data["商品編號"] != "F2500000044"])
-            freebies_count = len(sorted_data[sorted_data["商品編號"] == "F2500000044"])
-            print(f"\n主商品數量: {main_product_count}")
-            print(f"\n贈品數量: {freebies_count}")
-            new_rows = self.order_processor.process_c2c_orders(sorted_data)
-
+        excel = GetExcelData(input_data_path, platform)
+        data = excel()
+        field_config = ExcelFieldName.get_config(platform)
+        
+        order_processor = OrderProcessor(platform)
+        
+        if platform == "shopline":
+            address_checker = CheckAdress(original_data_path=input_data_path)
+            location_info = address_checker.check_adress()
+            rows = order_processor.process_orders(data, location_info)
         else:
-            print("未知的訂單格式")
-            return
+            rows = order_processor.process_orders(data)
 
-        print(f"\n最終筆數: {len(new_rows)}")
+        if platform == "c2c":
+            product_code = field_config["product_code"]
+            main_product_count = len(data[data[product_code] != "F2500000044"])
+            freebies_count = len(data[data[product_code] == "F2500000044"])
+            print(f"主商品數量: {main_product_count}\n")
+            print(f"贈品數量: {freebies_count}\n")
 
-        if "訂單號碼" in sorted_data:
-            order_number = sorted_data["訂單號碼"]
-        elif "平台訂單編號" in sorted_data:
-            order_number = sorted_data["平台訂單編號"]
-        elif "*銷售單號" in sorted_data:
-            order_number = sorted_data["*銷售單號"]
-
-        print(f"\n總訂單數: {len(order_number.unique())}")
-        self.save_to_excel(new_rows, output_path)
+        print(f"最終筆數: {len(rows)}\n")
+        print(f"總訂單數: {len(data[field_config['order_id']].unique())}\n")
+        
+        self.save_to_excel(rows, output_path)
 
 
 if __name__ == "__main__":
     generator = ReportGenerator()
     generator.generate_report(
-        input_data_path=r"/Users/jasonsung/Downloads/2025.04.09 減醣市集拋單110筆.xlsx",
+        input_data_path=r"C:\Users\07711.Jason.Sung\OneDrive - Global ICT\文件\快電商XCHECK2CHECK-拋單追蹤-減醣市集-貝果 (20).xlsx",
         output_path="123",
+        platform="shopline"
     )
