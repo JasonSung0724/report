@@ -2,7 +2,8 @@
 /dist
 /main.spec
 /report2.xlsx
-/template.xlsx
+/template.xlsx  
 /__pycache__
 /venv
 *.xlsx
+*.pyc

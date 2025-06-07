@@ -22,4 +22,4 @@ class CompanyName:
 
 
 class FilePath:
-    report = os.path.join(os.getcwd(), "report_template.xlsx")
+    report = os.path.join(os.getcwd(), "config/report_template.xlsx")

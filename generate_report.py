@@ -12,7 +12,7 @@ from get_excel import GetExcelData
 
 class ProductConfig:
     def __init__(self):
-        with open("product_config.json", "r", encoding="utf-8") as f:
+        with open("config/product_config.json", "r", encoding="utf-8") as f:
             self.config: Dict = json.load(f)
 
     def search_product(self, search_value: str, search_type: str = "mixx_name") -> Tuple[Optional[str], Optional[str]]:
@@ -90,9 +90,7 @@ class OrderProcessor:
             grand_total = 0
             for order in orders:
                 if str(order["商品編號"]) and str(order["商品編號"]) != "nan":
-                    with open("product_config.json", "r", encoding="utf-8") as f:
-                        product_config = json.load(f)
-                    qty = product_config[order["商品編號"]]["qty"]
+                    qty = self.product_config.config[order["商品編號"]]["qty"]
                     order_quantity = int(float(order["訂購數量"]))
                     grand_total += qty * order_quantity
 
@@ -352,7 +350,7 @@ class ReportGenerator:
 if __name__ == "__main__":
     generator = ReportGenerator()
     generator.generate_report(
-        input_data_path=r"C:\Users\07711.Jason.Sung\OneDrive - Global ICT\文件\快電商XCHECK2CHECK-拋單追蹤-減醣市集-貝果 (20).xlsx",
+        input_data_path=r"/Users/jasonsung/Downloads/carbs_orders_20250605124941012.xls",
         output_path="123",
         platform="shopline"
     )
