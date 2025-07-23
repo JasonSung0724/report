@@ -22,13 +22,14 @@ class ProductConfig:
             elif search_type == "c2c_code" and product_info.get("c2c_code") == search_value:
                 return product_code, None
         return None, None
-    
+
+
 class OrderDataHandler:
     def __init__(self, platform: str):
         self.field_config = ExcelFieldName.get_config(platform)
         self.platform = platform
         self.product_config = ProductConfig()
-    
+
     @staticmethod
     def format_date(order_time: str) -> str:
         try:
@@ -39,45 +40,36 @@ class OrderDataHandler:
             return date_time_format.strftime("%Y%m%d")
         except (ValueError, TypeError):
             return "INVALID_DATE"
-    
+
     def get_field_value(self, row: pd.Series, field_name: str) -> str:
         return str(row[self.field_config[field_name]])
-    
+
     def get_product_code(self, row: pd.Series) -> str:
         if self.platform == "mixx":
-            return self.product_config.search_product(
-                search_type="mixx_name",
-                search_value=str(row["品名/規格"]).split("｜")[1]
-            )[0]
+            return self.product_config.search_product(search_type="mixx_name", search_value=str(row["品名/規格"]).split("｜")[1])[0]
         elif self.platform == "c2c":
-            return self.product_config.search_product(
-                search_type="c2c_code",
-                search_value=str(row["商品編號"])
-            )[0]
+            return self.product_config.search_product(search_type="c2c_code", search_value=str(row["商品編號"]))[0]
         elif self.platform == "shopline":
             return str(row[self.field_config["product_code"]])
         return ""
-    
+
     def get_order_mark(self, row: pd.Series) -> str:
-        platform_marks = {
-            "c2c": ("減醣市集 X 快電商 C2C BUY", "出貨備註", " | "),
-            "shopline": ("減醣市集", "出貨備註", "/"),
-            "mixx": ("減醣市集", "備註", "/")
-        }
-        
+        platform_marks = {"c2c": ("減醣市集 X 快電商 C2C BUY", "出貨備註", " | "), "shopline": ("減醣市集", "出貨備註", "/"), "mixx": ("減醣市集", "備註", "/")}
+
         if self.platform in platform_marks:
             prefix, note_field, separator = platform_marks[self.platform]
             note = str(row[note_field])
             return f"{prefix}{'' if note == 'nan' else f'{separator}{note}'}"
         return ""
-    
+
     def get_formatted_date(self, row: pd.Series) -> str:
         date_mapping = {
             "c2c": lambda r: self.format_date(r["建立時間"]),
             "shopline": lambda r: self.format_date(r["訂單日期"]),
-            "mixx": lambda _: self.format_date(datetime.now())
+            "mixx": lambda _: self.format_date(datetime.now()),
         }
         return date_mapping.get(self.platform, lambda _: "")(row)
+
 
 class OrderProcessor:
     def __init__(self, platform: str):
@@ -105,7 +97,7 @@ class OrderProcessor:
 
     def get_delivery_info(self, row: pd.Series, store_address: Dict) -> Tuple[str, str]:
         delivery_method = row["送貨方式"].split("（", 1)[0]
-        
+
         if delivery_method == TargetShipping.tacat:
             return "Tcat", row["完整地址"]
         elif delivery_method == TargetShipping.family:
@@ -150,12 +142,14 @@ class OrderProcessor:
     def _add_box_to_order(self, personal_order: List[Dict]) -> Dict:
         box_type, box_name = self.calculate_box_type(personal_order)
         box_row = personal_order[0].copy()
-        box_row.update({
-            "商品編號": box_type,
-            "商品名稱": box_name,
-            "訂購數量": "1",
-            "品項備註": "箱子",
-        })
+        box_row.update(
+            {
+                "商品編號": box_type,
+                "商品名稱": box_name,
+                "訂購數量": "1",
+                "品項備註": "箱子",
+            }
+        )
         return box_row
 
     def _process_mixx_orders(self, data: pd.DataFrame) -> List[Dict]:
@@ -264,19 +258,10 @@ class ReportGenerator:
     def apply_cell_format(self, cell):
         is_error = isinstance(cell.value, str) and "ERROR" in cell.value
         is_nan = isinstance(cell.value, str) and cell.value.lower() == "nan"
-        
-        cell.font = Font(
-            name='微軟正黑體',
-            size=11,
-            bold=is_nan,
-            color="FF0000" if (is_error or is_nan) else "000000"
-        )
-        
-        cell.alignment = Alignment(
-            horizontal='left',
-            vertical='center',
-            wrap_text=True
-        )
+
+        cell.font = Font(name="微軟正黑體", size=11, bold=is_nan, color="FF0000" if (is_error or is_nan) else "000000")
+
+        cell.alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
 
     def auto_adjust_dimensions(self, sheet):
         for column in sheet.columns:
@@ -295,7 +280,7 @@ class ReportGenerator:
             max_height = 0
             for cell in row:
                 if cell.value:
-                    lines = str(cell.value).count('\n') + 1
+                    lines = str(cell.value).count("\n") + 1
                     required_height = lines * 15
                     max_height = max(max_height, required_height)
             if max_height > 0:
@@ -324,9 +309,9 @@ class ReportGenerator:
         excel = GetExcelData(input_data_path, platform)
         data = excel()
         field_config = ExcelFieldName.get_config(platform)
-        
+
         order_processor = OrderProcessor(platform)
-        
+
         if platform == "shopline":
             address_checker = CheckAdress(original_data_path=input_data_path)
             location_info = address_checker.check_adress()
@@ -343,14 +328,10 @@ class ReportGenerator:
 
         print(f"最終筆數: {len(rows)}\n")
         print(f"總訂單數: {len(data[field_config['order_id']].unique())}\n")
-        
+
         self.save_to_excel(rows, output_path)
 
 
-if __name__ == "__main__":
-    generator = ReportGenerator()
-    generator.generate_report(
-        input_data_path=r"/Users/jasonsung/Downloads/carbs_orders_20250605124941012.xls",
-        output_path="123",
-        platform="shopline"
-    )
+# if __name__ == "__main__":
+#     generator = ReportGenerator()
+#     generator.generate_report(input_data_path=r"C:\Users\07711.Jason.Sung\OneDrive - Global ICT\桌面\test.xlsx", output_path="123", platform="shopline")

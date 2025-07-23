@@ -1,6 +1,7 @@
 import pandas as pd
 from config.name import ExcelFieldName
 
+
 class GetExcelData:
     def __init__(self, input_data_path, platform):
         self.input_data_path = input_data_path
@@ -23,6 +24,6 @@ class GetExcelData:
         order_number = self.field_config["order_id"]
         product_quantity = self.field_config["product_quantity"]
         return pd.read_excel(self.input_data_path, dtype={order_number: str, product_quantity: str})
-    
+
     def __call__(self):
         return self.check_excel()

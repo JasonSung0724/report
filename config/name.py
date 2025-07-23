@@ -1,13 +1,15 @@
 import os
 import json
 
+
 class ExcelFieldName:
 
     @staticmethod
     def get_config(platform):
-        with open("config/field.json", "r") as f:
+        with open("config/field.json", "r", encoding="utf-8") as f:
             field_config = json.load(f)
         return field_config[platform]
+
 
 class TargetShipping:
     seven = "7-11低溫取貨"
