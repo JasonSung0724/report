@@ -7,3 +7,5 @@
 /venv
 *.xlsx
 *.pyc
+config/__pycache__/*
+.DS_Store

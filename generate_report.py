@@ -112,7 +112,7 @@ class OrderProcessor:
             return "7-11", f"(宅轉店){store_address[CompanyName.seven][store_name]}"
         return "UNKNOWN", "ERROR"
 
-    def create_order_row(self, row: pd.Series) -> Dict:
+    def create_order_row(self, row: pd.Series, delivery_method: str = "Tcat") -> Dict:
         return {
             "貨主編號": "A442",
             "貨主單號\n(不同客戶端、不同溫層要分單)": self.data_handler.get_field_value(row, "order_id"),
@@ -121,7 +121,7 @@ class OrderProcessor:
             "商品編號": self.data_handler.get_product_code(row),
             "商品名稱": self.data_handler.get_field_value(row, "product_name").replace("-F", ""),
             "訂購數量": self.data_handler.get_field_value(row, "product_quantity"),
-            "配送方式\nFT : 逢泰配送\nTcat : 黑貓宅配\n全家到府取貨": "Tcat",
+            "配送方式\nFT : 逢泰配送\nTcat : 黑貓宅配\n全家到府取貨": delivery_method,
             "收貨人姓名": self.data_handler.get_field_value(row, "receiver_name"),
             "收貨人地址": row["address"] if self.platform == "shopline" else self.data_handler.get_field_value(row, "receiver_address"),
             "收貨人聯絡電話": self.data_handler.get_field_value(row, "receiver_phone"),
@@ -228,7 +228,8 @@ class OrderProcessor:
 
             row_data = row.copy()
             row_data["address"] = address
-            new_row = self.create_order_row(row_data)
+            new_row = self.create_order_row(row_data, delivery_method)
+
             new_row["商品名稱"] = f"{row['商品名稱']}{product_mark}"
 
             if str(row["商品貨號"]) != "nan":
@@ -332,6 +333,6 @@ class ReportGenerator:
         self.save_to_excel(rows, output_path)
 
 
-# if __name__ == "__main__":
-#     generator = ReportGenerator()
-#     generator.generate_report(input_data_path=r"C:\Users\07711.Jason.Sung\OneDrive - Global ICT\桌面\test.xlsx", output_path="123", platform="shopline")
+if __name__ == "__main__":
+    generator = ReportGenerator()
+    generator.generate_report(input_data_path=r"/Users/jasonsung/Downloads/carbs_orders_20250805172603986.xls", output_path="123", platform="shopline")
