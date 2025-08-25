@@ -18,7 +18,7 @@ class GetExcelData:
             print(f"原始資料數量: {len(data)}\n")
             return sorted_data
         else:
-            raise ValueError(f"檔案欄位與預期不符: {list(data.columns)}")
+            raise ValueError(f"檔案欄位與預期不符: \n\n預期{self.field_config['columns']}\n\n實際{list(data.columns)}")
 
     def open_file(self):
         order_number = self.field_config["order_id"]
