@@ -46,7 +46,8 @@ class OrderDataHandler:
 
     def get_product_code(self, row: pd.Series) -> str:
         if self.platform == "mixx":
-            return self.product_config.search_product(search_type="mixx_name", search_value=str(row["品名/規格"]).split("｜")[1])[0]
+            product_name = str(row["品名/規格"]).split("｜")[1] if "｜" in str(row["品名/規格"]) else str(row["品名/規格"])
+            return self.product_config.search_product(search_type="mixx_name", search_value=product_name)[0]
         elif self.platform == "c2c":
             return self.product_config.search_product(search_type="c2c_code", search_value=str(row["商品編號"]))[0]
         elif self.platform == "shopline":
@@ -335,4 +336,6 @@ class ReportGenerator:
 
 if __name__ == "__main__":
     generator = ReportGenerator()
-    generator.generate_report(input_data_path=r"/Users/jasonsung/Downloads/carbs_orders_20250805172603986.xls", output_path="123", platform="shopline")
+    generator.generate_report(
+        input_data_path=r"C:\Users\07711.Jason.Sung\OneDrive - Global ICT\文件\2025.09.10 減醣市集拋單141筆.xlsx", output_path="123", platform="mixx"
+    )
