@@ -19,7 +19,7 @@ class ProductConfig:
         for product_code, product_info in self.config.items():
             if search_type == "mixx_name" and search_value in product_info.get("mixx_name", ""):
                 return product_code, None
-            elif search_type == "c2c_code" and product_info.get("c2c_code") == search_value:
+            elif search_type == "c2c_code" and search_value in product_info.get("c2c_code", []):
                 return product_code, None
         return None, None
 
