@@ -15,13 +15,16 @@ class ProductConfig:
         with open("config/product_config.json", "r", encoding="utf-8") as f:
             self.config: Dict = json.load(f)
 
-    def search_product(self, search_value: str, search_type: str = "mixx_name") -> Tuple[Optional[str], Optional[str]]:
+    def search_product(self, search_value: str, search_type: str = "mixx_name", c2c_name: str = None) -> str:
         for product_code, product_info in self.config.items():
             if search_type == "mixx_name" and search_value in product_info.get("mixx_name", ""):
-                return product_code, None
-            elif search_type == "c2c_code" and search_value in product_info.get("c2c_code", []):
-                return product_code, None
-        return None, None
+                return product_code
+            elif search_type == "c2c_code" and c2c_name in product_info.get("c2c_name", []):
+                c2c_code_list = product_info.get("c2c_code", [])
+                for code in c2c_code_list:
+                    if search_value in code:
+                        return product_code
+        return None
 
 
 class OrderDataHandler:
@@ -47,9 +50,9 @@ class OrderDataHandler:
     def get_product_code(self, row: pd.Series) -> str:
         if self.platform == "mixx":
             product_name = str(row["品名/規格"]).split("｜")[1] if "｜" in str(row["品名/規格"]) else str(row["品名/規格"])
-            return self.product_config.search_product(search_type="mixx_name", search_value=product_name)[0]
+            return self.product_config.search_product(search_type="mixx_name", search_value=product_name)
         elif self.platform == "c2c":
-            return self.product_config.search_product(search_type="c2c_code", search_value=str(row["商品編號"]))[0]
+            return self.product_config.search_product(search_type="c2c_code", search_value=str(row["商品編號"]), c2c_name=str(row["商品樣式"]))
         elif self.platform == "shopline":
             return str(row[self.field_config["product_code"]])
         return ""
@@ -71,7 +74,6 @@ class OrderDataHandler:
         }
         return date_mapping.get(self.platform, lambda _: "")(row)
 
-
 class OrderProcessor:
     def __init__(self, platform: str):
         self.platform = platform
@@ -80,6 +82,7 @@ class OrderProcessor:
 
     def calculate_box_type(self, orders: List[Dict]) -> Tuple[str, str]:
         try:
+
             grand_total = 0
             for order in orders:
                 if str(order["商品編號"]) and str(order["商品編號"]) != "nan":
@@ -336,4 +339,4 @@ class ReportGenerator:
 
 if __name__ == "__main__":
     generator = ReportGenerator()
-    generator.generate_report(input_data_path=r"C:\Users\07711.Jason.Sung\OneDrive - Global ICT\文件\C2C1002.xlsx", output_path="123", platform="c2c")
+    generator.generate_report(input_data_path=r"/Users/jasonsung/Downloads/C2C1002.xlsx", output_path="123", platform="c2c")
