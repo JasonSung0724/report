@@ -13,7 +13,8 @@ class GetExcelData:
         current_columns = [column for column in list(data.columns) if column.startswith("Unnamed:") == False]
         if current_columns == self.field_config["columns"]:
             receiver_name = self.field_config["receiver_name"]
-            sorted_data = data.sort_values(by=receiver_name, ascending=True)
+            order_id = self.field_config["order_id"]
+            sorted_data = data.sort_values(by=order_id, ascending=True)
             print(f"\n處理{self.platform.upper()}訂單\n")
             print(f"原始資料數量: {len(data)}\n")
             return sorted_data
