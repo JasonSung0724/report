@@ -17,7 +17,7 @@ class ProductConfig:
 
     def search_product(self, search_value: str, search_type: str = "mixx_name", c2c_name: str = None) -> str:
         for product_code, product_info in self.config.items():
-            if search_type == "mixx_name" and search_value in product_info.get("mixx_name", ""):
+            if search_type == "mixx_name" and search_value in product_info.get("mixx_name", []):
                 return product_code
             elif search_type == "c2c_code" and c2c_name in product_info.get("c2c_name", []):
                 c2c_code_list = product_info.get("c2c_code", [])
@@ -73,6 +73,7 @@ class OrderDataHandler:
             "mixx": lambda _: self.format_date(datetime.now()),
         }
         return date_mapping.get(self.platform, lambda _: "")(row)
+
 
 class OrderProcessor:
     def __init__(self, platform: str):
@@ -339,4 +340,4 @@ class ReportGenerator:
 
 if __name__ == "__main__":
     generator = ReportGenerator()
-    generator.generate_report(input_data_path=r"/Users/jasonsung/Downloads/C2C1002.xlsx", output_path="123", platform="c2c")
+    generator.generate_report(input_data_path=r"C:\Users\07711.Jason.Sung\OneDrive - Global ICT\文件\MIXX1009.xlsx", output_path="123", platform="mixx")
