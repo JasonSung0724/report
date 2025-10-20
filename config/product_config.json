@@ -14,7 +14,7 @@
     "bagel001-3EA":{"qty":3, "mixx_name":[], "c2c_code":[], "c2c_name":[]},
     "bagel002-3EA":{"qty":3, "mixx_name":[], "c2c_code":[], "c2c_name":[]},
     "bagel003-3EA":{"qty":3, "mixx_name":[], "c2c_code":[], "c2c_name":[]},
-    "bagel004-3EA":{"qty":3, "mixx_name":[], "c2c_code":[], "c2c_name":[]},
+    "bagel004-3EA":{"qty":3, "mixx_name":[], "c2c_bagel002-1EAcode":[], "c2c_name":[]},
     "bagel005-3EA":{"qty":3, "mixx_name":[], "c2c_code":[], "c2c_name":[]},
     "bagel006-3EA":{"qty":3, "mixx_name":[], "c2c_code":[], "c2c_name":[]},
     "bagel007-3EA":{"qty":3, "mixx_name":[], "c2c_code":[], "c2c_name":[]},
@@ -40,5 +40,12 @@
     "bagel005-1EA":{"qty":1, "mixx_name":[], "c2c_code":[], "c2c_name":[]},
     "bagel006-1EA":{"qty":1, "mixx_name":[], "c2c_code":[], "c2c_name":[]},
     "bagel007-1EA":{"qty":1, "mixx_name":[], "c2c_code":[], "c2c_name":[]},
-    "bagel101-11PK-810":{"qty":12, "mixx_name":[], "c2c_code":[], "c2c_name":[]}
+    "bagel101-11PK-810":{"qty":12, "mixx_name":[], "c2c_code":[], "c2c_name":[]},
+    "bagel011-1EA":{"qty":1, "mixx_name":[], "c2c_code":[], "c2c_name":[]},
+    "bagel012-1EA":{"qty":1, "mixx_name":[], "c2c_code":[], "c2c_name":[]},
+    "bagel013-1EA":{"qty":1, "mixx_name":[], "c2c_code":[], "c2c_name":[]},
+    "bagel014-1EA":{"qty":1, "mixx_name":[], "c2c_code":[], "c2c_name":[]},
+    "bagel015-1EA":{"qty":1, "mixx_name":[], "c2c_code":[], "c2c_name":[]},
+    "bagel016-1EA":{"qty":1, "mixx_name":[], "c2c_code":[], "c2c_name":[]},
+    "bagel101-10PK-KOL":{"qty":10, "mixx_name":[], "c2c_code":[], "c2c_name":[]}
 }
