@@ -235,7 +235,7 @@ class OrderProcessor:
             row_data["address"] = address
             new_row = self.create_order_row(row_data, delivery_method)
 
-            new_row["商品名稱"] = f"{row['商品名稱']}{product_mark}"
+            new_row["商品名稱"] = f"{row['商品名稱']}{product_mark}" if not pd.notna(row["商品貨號"]) else f"{row['選項']}{product_mark}"
 
             if str(row["商品貨號"]) != "nan":
                 if not personal_order or personal_order[0]["貨主單號\n(不同客戶端、不同溫層要分單)"] == str(row["訂單號碼"]):
@@ -340,4 +340,4 @@ class ReportGenerator:
 
 if __name__ == "__main__":
     generator = ReportGenerator()
-    generator.generate_report(input_data_path=r"C:\Users\07711.Jason.Sung\OneDrive - Global ICT\文件\MIXX1009.xlsx", output_path="456", platform="mixx")
+    generator.generate_report(input_data_path=r"/Users/jasonsung/Downloads/任選-carbs_orders_20251102093714047.xls", output_path="12", platform="shopline")
