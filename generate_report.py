@@ -340,4 +340,4 @@ class ReportGenerator:
 
 if __name__ == "__main__":
     generator = ReportGenerator()
-    generator.generate_report(input_data_path=r"C:\Users\07711.Jason.Sung\OneDrive - Global ICT\文件\1106.xls", output_path="123", platform="shopline")
+    generator.generate_report(input_data_path=r"/Users/jasonsung/Downloads/1116.xls", output_path="123", platform="shopline")
