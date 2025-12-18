@@ -57,5 +57,10 @@
     "bagel015-1EA":{"qty":1, "mixx_name":[], "c2c_code":[], "c2c_name":[]},
     "bagel016-1EA":{"qty":1, "mixx_name":[], "c2c_code":[], "c2c_name":[]},
     "bagel101-10PK-KOL":{"qty":10, "mixx_name":[], "c2c_code":[], "c2c_name":[]},
+    "bagel101-14PK-459":{"qty":6, "mixx_name":[], "c2c_code":[], "c2c_name":[]},
+    "bagel101-15PK-899":{"qty":15, "mixx_name":[], "c2c_code":[], "c2c_name":[]},
+    "bagel101-16PK-999":{"qty":14, "mixx_name":[], "c2c_code":[], "c2c_name":[]},
+    "bagel101-17PK-KOL":{"qty":14, "mixx_name":[], "c2c_code":[], "c2c_name":[]}
+    "bagel101-10PK-KOL":{"qty":10, "mixx_name":[], "c2c_code":[], "c2c_name":[]},
     "bagel101-18PK-KOL":{"qty":16, "mixx_name":[], "c2c_code":[], "c2c_name":[]}
 }
