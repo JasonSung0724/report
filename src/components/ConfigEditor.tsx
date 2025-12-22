@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Settings, Plus, Trash2, Download, Upload, RotateCcw, ChevronDown, ChevronRight } from 'lucide-react';
+import { Settings, Plus, Trash2, Download, Upload, RotateCcw, ChevronDown, ChevronRight, Edit2, X, Check } from 'lucide-react';
 import { ProductInfo } from '@/config/productConfig';
 
 interface ConfigEditorProps {
@@ -23,6 +23,7 @@ export default function ConfigEditor({
 }: ConfigEditorProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [editingCode, setEditingCode] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<ProductInfo | null>(null);
   const [newCode, setNewCode] = useState('');
   const [newQty, setNewQty] = useState('1');
 
@@ -59,9 +60,39 @@ export default function ConfigEditor({
       mixx_name: [],
       c2c_code: [],
       c2c_name: [],
+      aoshi_name: [],
     });
     setNewCode('');
     setNewQty('1');
+  };
+
+  const startEdit = (code: string, info: ProductInfo) => {
+    setEditingCode(code);
+    setEditForm({ ...info });
+  };
+
+  const cancelEdit = () => {
+    setEditingCode(null);
+    setEditForm(null);
+  };
+
+  const saveEdit = () => {
+    if (editingCode && editForm) {
+      onUpdate(editingCode, editForm);
+      cancelEdit();
+    }
+  };
+
+  const updateEditField = (field: keyof ProductInfo, value: string) => {
+    if (!editForm) return;
+    if (field === 'qty') {
+      setEditForm({ ...editForm, qty: parseInt(value) || 0 });
+    } else {
+      setEditForm({
+        ...editForm,
+        [field]: value.split('\n').map(s => s.trim()).filter(s => s),
+      });
+    }
   };
 
   return (
@@ -124,36 +155,124 @@ export default function ConfigEditor({
               </button>
             </div>
 
-            <div className="max-h-64 overflow-y-auto">
-              <table className="data-table text-sm">
-                <thead>
-                  <tr>
-                    <th>產品編號</th>
-                    <th>數量</th>
-                    <th>MIXX 名稱</th>
-                    <th>操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(productConfig).map(([code, info]) => (
-                    <tr key={code}>
-                      <td className="font-mono text-xs">{code}</td>
-                      <td>{info.qty}</td>
-                      <td className="max-w-[200px] truncate text-gray-600">
-                        {info.mixx_name.join(', ') || '-'}
-                      </td>
-                      <td>
-                        <button
-                          onClick={() => onDelete(code)}
-                          className="p-1 text-red-500 hover:bg-red-50 rounded"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="max-h-[500px] overflow-y-auto space-y-2">
+              {Object.entries(productConfig).map(([code, info]) => (
+                <div key={code} className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50">
+                  {editingCode === code && editForm ? (
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="font-mono text-sm font-semibold text-green-600">{code}</span>
+                        <div className="flex gap-1">
+                          <button onClick={saveEdit} className="p-1.5 text-green-600 hover:bg-green-50 rounded">
+                            <Check className="w-4 h-4" />
+                          </button>
+                          <button onClick={cancelEdit} className="p-1.5 text-gray-500 hover:bg-gray-100 rounded">
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs text-gray-500 block mb-1">數量 (qty)</label>
+                          <input
+                            type="number"
+                            value={editForm.qty}
+                            onChange={(e) => updateEditField('qty', e.target.value)}
+                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-500 block mb-1">MIXX 名稱 (每行一個)</label>
+                        <textarea
+                          value={editForm.mixx_name.join('\n')}
+                          onChange={(e) => updateEditField('mixx_name', e.target.value)}
+                          rows={2}
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-500 block mb-1">C2C 編號 (每行一個)</label>
+                        <textarea
+                          value={editForm.c2c_code.join('\n')}
+                          onChange={(e) => updateEditField('c2c_code', e.target.value)}
+                          rows={2}
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-500 block mb-1">C2C 名稱 (每行一個)</label>
+                        <textarea
+                          value={editForm.c2c_name.join('\n')}
+                          onChange={(e) => updateEditField('c2c_name', e.target.value)}
+                          rows={2}
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-500 block mb-1">奧世國際 名稱 (每行一個)</label>
+                        <textarea
+                          value={(editForm.aoshi_name || []).join('\n')}
+                          onChange={(e) => updateEditField('aoshi_name', e.target.value)}
+                          rows={2}
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded font-mono"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <span className="font-mono text-sm font-semibold text-gray-800">{code}</span>
+                          <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                            qty: {info.qty}
+                          </span>
+                        </div>
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => startEdit(code, info)}
+                            className="p-1.5 text-gray-500 hover:bg-gray-100 rounded"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => onDelete(code)}
+                            className="p-1.5 text-red-500 hover:bg-red-50 rounded"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        {info.mixx_name.length > 0 && (
+                          <div>
+                            <span className="text-gray-400">MIXX:</span>
+                            <div className="text-gray-600 truncate">{info.mixx_name.join(', ')}</div>
+                          </div>
+                        )}
+                        {info.c2c_code.length > 0 && (
+                          <div>
+                            <span className="text-gray-400">C2C Code:</span>
+                            <div className="text-gray-600 font-mono truncate">{info.c2c_code.join(', ')}</div>
+                          </div>
+                        )}
+                        {info.c2c_name.length > 0 && (
+                          <div>
+                            <span className="text-gray-400">C2C Name:</span>
+                            <div className="text-gray-600 truncate">{info.c2c_name.join(', ')}</div>
+                          </div>
+                        )}
+                        {info.aoshi_name && info.aoshi_name.length > 0 && (
+                          <div>
+                            <span className="text-gray-400">奧世:</span>
+                            <div className="text-gray-600 truncate">{info.aoshi_name.join(', ')}</div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         </div>

@@ -10,7 +10,7 @@ import ProcessingResult from '@/components/ProcessingResult';
 import { useConfig } from '@/lib/hooks/useConfig';
 import { Platform, RawOrderData, ProcessingError } from '@/lib/types/order';
 import { readExcelFile, validateColumns, sortByOrderId } from '@/lib/excel/ExcelReader';
-import { generateExcelReport, downloadBlob } from '@/lib/excel/ExcelWriter';
+import { generateAndDownloadReport } from '@/lib/excel/ExcelWriter';
 import { createProcessor } from '@/lib/processors';
 
 export default function Home() {
@@ -89,8 +89,7 @@ export default function Home() {
         errors,
       });
 
-      const blob = await generateExcelReport(rows, outputFileName);
-      downloadBlob(blob, outputFileName);
+      await generateAndDownloadReport(rows, outputFileName);
     } catch (err) {
       setError('處理過程發生錯誤');
       console.error(err);
