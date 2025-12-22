@@ -1,7 +1,0 @@
-webdriver-manager
-selenium
-pandas
-xlrd
-openpyxl
-xlwt
-PyQt5
