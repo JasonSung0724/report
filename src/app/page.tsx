@@ -10,6 +10,7 @@ import ProcessingResult from '@/components/ProcessingResult';
 import { useConfig } from '@/lib/hooks/useConfig';
 import { Platform, RawOrderData, ProcessingError } from '@/lib/types/order';
 import { readExcelFile, validateColumns, sortByOrderId } from '@/lib/excel/ExcelReader';
+import { fieldConfig } from '@/config/fieldConfig';
 import { generateAndDownloadReport } from '@/lib/excel/ExcelWriter';
 import { createProcessor } from '@/lib/processors';
 
@@ -44,16 +45,10 @@ export default function Home() {
 
     try {
       const data = await readExcelFile(file);
-      const validation = validateColumns(data, platform);
-
-      if (!validation.isValid) {
-        setError(`欄位驗證失敗。缺少欄位: ${validation.missingColumns.join(', ')}`);
-        return;
-      }
-
-      const sortedData = sortByOrderId(data, platform);
-      setRawData(sortedData);
+      setRawData(data);
       setOutputFileName(file.name.replace(/\.(xlsx|xls)$/, '_output'));
+      console.log(`\n處理${platform.toUpperCase()}訂單\n`);
+      console.log(`原始資料數量: ${data.length}\n`);
     } catch (err) {
       setError('檔案讀取失敗，請確認檔案格式正確');
     }
@@ -74,18 +69,28 @@ export default function Home() {
     setError(null);
 
     try {
+      const validation = validateColumns(rawData, platform);
+      if (!validation.isValid) {
+        setError(`欄位驗證失敗。缺少欄位: ${validation.missingColumns.join(', ')}`);
+        setIsProcessing(false);
+        return;
+      }
+
+      const sortedData = sortByOrderId(rawData, platform);
       const processor = createProcessor(platform, productConfig);
-      const rows = processor.process(rawData);
+      const rows = processor.process(sortedData);
       const errors = processor.getErrors();
 
-      const uniqueOrderIds = new Set(
-        rows.map(r => r['貨主單號\n(不同客戶端、不同溫層要分單)'])
-      );
+      const orderIdField = fieldConfig[platform].order_id;
+      const uniqueOrderCount = new Set(sortedData.map(r => String(r[orderIdField]))).size;
+
+      console.log(`最終筆數: ${rows.length}\n`);
+      console.log(`總訂單數: ${uniqueOrderCount}\n`);
 
       setProcessingResult({
         originalCount: rawData.length,
         finalCount: rows.length,
-        uniqueOrderCount: uniqueOrderIds.size,
+        uniqueOrderCount,
         errors,
       });
 

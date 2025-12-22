@@ -3,6 +3,7 @@ import { OrderRow, RawOrderData } from '../types/order';
 import { ProductInfo } from '@/config/productConfig';
 import { formatDateToYYYYMMDD } from '../utils/dateUtils';
 import { safeString, formatOrderMark, isEmptyOrInvalid, cleanProductName } from '../utils/stringUtils';
+import { searchProduct } from '../utils/productMatcher';
 
 const GIVEAWAY_CODE = 'F2500000044';
 
@@ -14,11 +15,11 @@ export class C2CProcessor extends BaseProcessor {
   protected getProductCode(row: RawOrderData): string {
     const productCode = safeString(row['商品編號']);
     const productStyle = safeString(row['商品樣式']);
-    const result = this.productMatcher.findByC2C(productCode, productStyle);
-    if (!result) {
+    const code = searchProduct(productCode, 'c2c_code', this.productConfig, productStyle);
+    if (!code) {
       this.addError(safeString(row['平台訂單編號']), '商品編號', `找不到商品: ${productCode}`);
     }
-    return result?.productCode || 'ERROR';
+    return code || 'ERROR';
   }
 
   protected getFormattedDate(row: RawOrderData): string {
@@ -37,33 +38,6 @@ export class C2CProcessor extends BaseProcessor {
     return safeString(row['收件者地址']);
   }
 
-  private processGiveaway(row: RawOrderData, personalOrder: OrderRow[], newRows: OrderRow[]): OrderRow[] {
-    const currentOrderId = safeString(row['平台訂單編號']);
-    const productStyle = safeString(row['商品樣式']);
-    const cleanedStyle = productStyle.replace('(贈品)-F', '');
-    const parts = cleanedStyle.split('+');
-
-    for (let i = 0; i < 2; i++) {
-      if (personalOrder.length > 0) {
-        const prevOrderId = personalOrder[0]['貨主單號\n(不同客戶端、不同溫層要分單)'];
-        if (prevOrderId !== currentOrderId) {
-          newRows.push(this.createBoxRow(personalOrder[0], this.calculateBox(personalOrder)));
-          personalOrder = [];
-        }
-      }
-
-      const deliveryMethod = this.getDeliveryMethod(row);
-      const address = this.getReceiverAddress(row);
-      const newRow = this.createBaseOrderRow(row, deliveryMethod, address);
-      newRow['商品名稱'] = parts[i] ? parts[i].trim() : cleanProductName(productStyle);
-
-      personalOrder.push(newRow);
-      newRows.push(newRow);
-    }
-
-    return personalOrder;
-  }
-
   public process(data: RawOrderData[]): OrderRow[] {
     const newRows: OrderRow[] = [];
     let personalOrder: OrderRow[] = [];
@@ -72,27 +46,50 @@ export class C2CProcessor extends BaseProcessor {
       const currentOrderId = safeString(row['平台訂單編號']);
       const productCode = safeString(row['商品編號']);
 
-      if (isEmptyOrInvalid(currentOrderId)) continue;
-
       if (productCode === GIVEAWAY_CODE) {
-        personalOrder = this.processGiveaway(row, personalOrder, newRows);
-        continue;
-      }
+        const productStyle = safeString(row['商品樣式']);
+        const cleanedStyle = productStyle.replace('(贈品)-F', '');
+        const parts = cleanedStyle.split('+');
 
-      if (personalOrder.length > 0) {
-        const prevOrderId = personalOrder[0]['貨主單號\n(不同客戶端、不同溫層要分單)'];
-        if (prevOrderId !== currentOrderId) {
+        for (let i = 0; i < 2; i++) {
+          if (personalOrder.length > 0 &&
+              personalOrder[0]['貨主單號\n(不同客戶端、不同溫層要分單)'] !== currentOrderId) {
+            newRows.push(this.createBoxRow(personalOrder[0], this.calculateBox(personalOrder)));
+            personalOrder = [];
+          }
+
+          const newRow = this.createBaseOrderRow(row, this.getDeliveryMethod(row), this.getReceiverAddress(row));
+          newRow['商品名稱'] = parts[i] ? parts[i].trim() : cleanProductName(productStyle);
+
+          if (!isEmptyOrInvalid(currentOrderId)) {
+            if (personalOrder.length === 0 ||
+                personalOrder[0]['貨主單號\n(不同客戶端、不同溫層要分單)'] === currentOrderId) {
+              personalOrder.push(newRow);
+            } else {
+              personalOrder = [newRow];
+            }
+            newRows.push(newRow);
+          }
+        }
+      } else {
+        if (personalOrder.length > 0 &&
+            personalOrder[0]['貨主單號\n(不同客戶端、不同溫層要分單)'] !== currentOrderId) {
           newRows.push(this.createBoxRow(personalOrder[0], this.calculateBox(personalOrder)));
           personalOrder = [];
         }
+
+        const newRow = this.createBaseOrderRow(row, this.getDeliveryMethod(row), this.getReceiverAddress(row));
+
+        if (!isEmptyOrInvalid(currentOrderId)) {
+          if (personalOrder.length === 0 ||
+              personalOrder[0]['貨主單號\n(不同客戶端、不同溫層要分單)'] === currentOrderId) {
+            personalOrder.push(newRow);
+          } else {
+            personalOrder = [newRow];
+          }
+          newRows.push(newRow);
+        }
       }
-
-      const deliveryMethod = this.getDeliveryMethod(row);
-      const address = this.getReceiverAddress(row);
-      const newRow = this.createBaseOrderRow(row, deliveryMethod, address);
-
-      personalOrder.push(newRow);
-      newRows.push(newRow);
     }
 
     if (personalOrder.length > 0) {

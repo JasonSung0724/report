@@ -3,6 +3,7 @@ import { OrderRow, RawOrderData } from '../types/order';
 import { ProductInfo } from '@/config/productConfig';
 import { formatDateToYYYYMMDD } from '../utils/dateUtils';
 import { safeString, formatOrderMark, isEmptyOrInvalid } from '../utils/stringUtils';
+import { searchProduct } from '../utils/productMatcher';
 
 export class AoshiProcessor extends BaseProcessor {
   constructor(productConfig?: Record<string, ProductInfo>) {
@@ -11,11 +12,11 @@ export class AoshiProcessor extends BaseProcessor {
 
   protected getProductCode(row: RawOrderData): string {
     const productName = safeString(row['商品名稱']);
-    const result = this.productMatcher.findByAoshiName(productName);
-    if (!result) {
+    const code = searchProduct(productName, 'aoshi_name', this.productConfig);
+    if (!code) {
       this.addError(safeString(row['訂單號碼']), '商品編號', `找不到商品: ${productName}`);
     }
-    return result?.productCode || 'ERROR';
+    return code || 'ERROR';
   }
 
   protected getFormattedDate(row: RawOrderData): string {
@@ -41,22 +42,23 @@ export class AoshiProcessor extends BaseProcessor {
     for (const row of data) {
       const currentOrderId = safeString(row['訂單號碼']);
 
-      if (personalOrder.length > 0) {
-        const prevOrderId = personalOrder[0]['貨主單號\n(不同客戶端、不同溫層要分單)'];
-        if (prevOrderId !== currentOrderId) {
-          newRows.push(this.createBoxRow(personalOrder[0], this.calculateBox(personalOrder)));
-          personalOrder = [];
-        }
+      if (personalOrder.length > 0 &&
+          personalOrder[0]['貨主單號\n(不同客戶端、不同溫層要分單)'] !== currentOrderId) {
+        newRows.push(this.createBoxRow(personalOrder[0], this.calculateBox(personalOrder)));
+        personalOrder = [];
       }
 
-      if (isEmptyOrInvalid(currentOrderId)) continue;
+      const newRow = this.createBaseOrderRow(row, this.getDeliveryMethod(row), this.getReceiverAddress(row));
 
-      const deliveryMethod = this.getDeliveryMethod(row);
-      const address = this.getReceiverAddress(row);
-      const newRow = this.createBaseOrderRow(row, deliveryMethod, address);
-
-      personalOrder.push(newRow);
-      newRows.push(newRow);
+      if (!isEmptyOrInvalid(currentOrderId)) {
+        if (personalOrder.length === 0 ||
+            personalOrder[0]['貨主單號\n(不同客戶端、不同溫層要分單)'] === currentOrderId) {
+          personalOrder.push(newRow);
+        } else {
+          personalOrder = [newRow];
+        }
+        newRows.push(newRow);
+      }
     }
 
     if (personalOrder.length > 0) {

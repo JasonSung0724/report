@@ -2,7 +2,8 @@ import { BaseProcessor } from './BaseProcessor';
 import { OrderRow, RawOrderData } from '../types/order';
 import { ProductInfo } from '@/config/productConfig';
 import { getCurrentDateYYYYMMDD } from '../utils/dateUtils';
-import { safeString, extractAfterSeparator, formatOrderMark, isEmptyOrInvalid } from '../utils/stringUtils';
+import { safeString, formatOrderMark, isEmptyOrInvalid } from '../utils/stringUtils';
+import { searchProduct } from '../utils/productMatcher';
 
 export class MixxProcessor extends BaseProcessor {
   constructor(productConfig?: Record<string, ProductInfo>) {
@@ -10,13 +11,15 @@ export class MixxProcessor extends BaseProcessor {
   }
 
   protected getProductCode(row: RawOrderData): string {
-    const productName = safeString(row['品名/規格']);
-    const extracted = extractAfterSeparator(productName, '｜');
-    const result = this.productMatcher.findByMixxName(extracted);
-    if (!result) {
-      this.addError(safeString(row['*銷售單號']), '商品編號', `找不到商品: ${extracted}`);
+    const productNameRaw = safeString(row['品名/規格']);
+    const productName = productNameRaw.includes('｜')
+      ? productNameRaw.split('｜')[1]
+      : productNameRaw;
+    const code = searchProduct(productName, 'mixx_name', this.productConfig);
+    if (!code) {
+      this.addError(safeString(row['*銷售單號']), '商品編號', `找不到商品: ${productName}`);
     }
-    return result?.productCode || 'ERROR';
+    return code || 'ERROR';
   }
 
   protected getFormattedDate(_row: RawOrderData): string {
@@ -42,22 +45,23 @@ export class MixxProcessor extends BaseProcessor {
     for (const row of data) {
       const currentOrderId = safeString(row['*銷售單號']);
 
-      if (personalOrder.length > 0) {
-        const prevOrderId = personalOrder[0]['貨主單號\n(不同客戶端、不同溫層要分單)'];
-        if (prevOrderId !== currentOrderId) {
-          newRows.push(this.createBoxRow(personalOrder[0], this.calculateBox(personalOrder)));
-          personalOrder = [];
-        }
+      if (personalOrder.length > 0 &&
+          personalOrder[0]['貨主單號\n(不同客戶端、不同溫層要分單)'] !== currentOrderId) {
+        newRows.push(this.createBoxRow(personalOrder[0], this.calculateBox(personalOrder)));
+        personalOrder = [];
       }
 
-      if (isEmptyOrInvalid(currentOrderId)) continue;
+      const newRow = this.createBaseOrderRow(row, this.getDeliveryMethod(row), this.getReceiverAddress(row));
 
-      const deliveryMethod = this.getDeliveryMethod(row);
-      const address = this.getReceiverAddress(row);
-      const newRow = this.createBaseOrderRow(row, deliveryMethod, address);
-
-      personalOrder.push(newRow);
-      newRows.push(newRow);
+      if (!isEmptyOrInvalid(currentOrderId)) {
+        if (personalOrder.length === 0 ||
+            personalOrder[0]['貨主單號\n(不同客戶端、不同溫層要分單)'] === currentOrderId) {
+          personalOrder.push(newRow);
+        } else {
+          personalOrder = [newRow];
+        }
+        newRows.push(newRow);
+      }
     }
 
     if (personalOrder.length > 0) {
