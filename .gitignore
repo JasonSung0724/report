@@ -1,13 +1,33 @@
-/build
-/dist
-/main.spec
-/report2.xlsx
-/template.xlsx  
-/__pycache__
-/venv
-*.xlsx
-*.pyc
-config/__pycache__/*
+# dependencies
+node_modules
+.pnp
+.pnp.js
+
+# testing
+coverage
+
+# next.js
+.next/
+out/
+
+# production
+build
+
+# misc
 .DS_Store
-report/*
-.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env*.local
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
