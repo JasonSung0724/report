@@ -1,21 +1,21 @@
 import { BaseProcessor } from './BaseProcessor';
 import { OrderRow, RawOrderData } from '../types/order';
-import { searchProduct } from '@/config/productConfig';
+import { ProductInfo } from '@/config/productConfig';
 import { formatDateToYYYYMMDD } from '../utils/dateUtils';
 import { safeString, formatOrderMark, isEmptyOrInvalid } from '../utils/stringUtils';
 
 export class AoshiProcessor extends BaseProcessor {
-  constructor() {
-    super('aoshi');
+  constructor(productConfig?: Record<string, ProductInfo>) {
+    super('aoshi', productConfig);
   }
 
   protected getProductCode(row: RawOrderData): string {
     const productName = safeString(row['商品名稱']);
-    const code = searchProduct(productName, 'aoshi_name');
-    if (!code) {
+    const result = this.productMatcher.findByAoshiName(productName);
+    if (!result) {
       this.addError(safeString(row['訂單號碼']), '商品編號', `找不到商品: ${productName}`);
     }
-    return code || 'ERROR';
+    return result?.productCode || 'ERROR';
   }
 
   protected getFormattedDate(row: RawOrderData): string {

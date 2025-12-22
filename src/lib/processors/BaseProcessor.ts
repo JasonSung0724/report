@@ -1,20 +1,22 @@
 import { OrderRow, RawOrderData, ProcessingError, Platform, StoreAddress } from '../types/order';
 import { fieldConfig } from '@/config/fieldConfig';
-import { productConfig, searchProduct, ProductInfo } from '@/config/productConfig';
-import { formatDateToYYYYMMDD, getCurrentDateYYYYMMDD } from '../utils/dateUtils';
-import { safeString, isEmptyOrInvalid, cleanProductName, formatOrderMark } from '../utils/stringUtils';
+import { productConfig as defaultProductConfig, ProductInfo } from '@/config/productConfig';
+import { safeString, cleanProductName } from '../utils/stringUtils';
 import { calculateBoxForOrders, BoxType, OrderItem } from '../utils/boxCalculator';
+import { ProductMatcher, getProductMatcher } from '../utils/productMatcher';
 
 export abstract class BaseProcessor {
   protected platform: Platform;
   protected config: typeof fieldConfig[Platform];
   protected productConfig: Record<string, ProductInfo>;
+  protected productMatcher: ProductMatcher;
   protected errors: ProcessingError[] = [];
 
-  constructor(platform: Platform) {
+  constructor(platform: Platform, productConfig?: Record<string, ProductInfo>) {
     this.platform = platform;
     this.config = fieldConfig[platform];
-    this.productConfig = productConfig;
+    this.productConfig = productConfig || defaultProductConfig;
+    this.productMatcher = getProductMatcher(this.productConfig);
   }
 
   protected getFieldValue(row: RawOrderData, fieldKey: keyof typeof this.config): string {

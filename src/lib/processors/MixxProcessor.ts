@@ -1,22 +1,22 @@
 import { BaseProcessor } from './BaseProcessor';
 import { OrderRow, RawOrderData } from '../types/order';
-import { searchProduct } from '@/config/productConfig';
+import { ProductInfo } from '@/config/productConfig';
 import { getCurrentDateYYYYMMDD } from '../utils/dateUtils';
 import { safeString, extractAfterSeparator, formatOrderMark, isEmptyOrInvalid } from '../utils/stringUtils';
 
 export class MixxProcessor extends BaseProcessor {
-  constructor() {
-    super('mixx');
+  constructor(productConfig?: Record<string, ProductInfo>) {
+    super('mixx', productConfig);
   }
 
   protected getProductCode(row: RawOrderData): string {
     const productName = safeString(row['品名/規格']);
     const extracted = extractAfterSeparator(productName, '｜');
-    const code = searchProduct(extracted, 'mixx_name');
-    if (!code) {
+    const result = this.productMatcher.findByMixxName(extracted);
+    if (!result) {
       this.addError(safeString(row['*銷售單號']), '商品編號', `找不到商品: ${extracted}`);
     }
-    return code || 'ERROR';
+    return result?.productCode || 'ERROR';
   }
 
   protected getFormattedDate(_row: RawOrderData): string {

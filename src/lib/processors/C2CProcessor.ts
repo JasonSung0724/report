@@ -1,24 +1,24 @@
 import { BaseProcessor } from './BaseProcessor';
 import { OrderRow, RawOrderData } from '../types/order';
-import { searchProduct } from '@/config/productConfig';
+import { ProductInfo } from '@/config/productConfig';
 import { formatDateToYYYYMMDD } from '../utils/dateUtils';
 import { safeString, formatOrderMark, isEmptyOrInvalid, cleanProductName } from '../utils/stringUtils';
 
 const GIVEAWAY_CODE = 'F2500000044';
 
 export class C2CProcessor extends BaseProcessor {
-  constructor() {
-    super('c2c');
+  constructor(productConfig?: Record<string, ProductInfo>) {
+    super('c2c', productConfig);
   }
 
   protected getProductCode(row: RawOrderData): string {
     const productCode = safeString(row['商品編號']);
     const productStyle = safeString(row['商品樣式']);
-    const code = searchProduct(productCode, 'c2c_code', productStyle);
-    if (!code) {
+    const result = this.productMatcher.findByC2C(productCode, productStyle);
+    if (!result) {
       this.addError(safeString(row['平台訂單編號']), '商品編號', `找不到商品: ${productCode}`);
     }
-    return code || 'ERROR';
+    return result?.productCode || 'ERROR';
   }
 
   protected getFormattedDate(row: RawOrderData): string {

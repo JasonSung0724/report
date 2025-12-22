@@ -1,14 +1,13 @@
 import { BaseProcessor } from './BaseProcessor';
 import { OrderRow, RawOrderData, StoreAddress } from '../types/order';
+import { ProductInfo } from '@/config/productConfig';
 import { formatDateToYYYYMMDD } from '../utils/dateUtils';
 import { safeString, formatOrderMark, isEmptyOrInvalid, extractProductMark } from '../utils/stringUtils';
 import { TargetShipping, CompanyName } from '@/config/fieldConfig';
 
 export class ShoplineProcessor extends BaseProcessor {
-  private storeAddress: StoreAddress | null = null;
-
-  constructor() {
-    super('shopline');
+  constructor(productConfig?: Record<string, ProductInfo>) {
+    super('shopline', productConfig);
   }
 
   protected getProductCode(row: RawOrderData): string {
@@ -81,7 +80,6 @@ export class ShoplineProcessor extends BaseProcessor {
   }
 
   public process(data: RawOrderData[], storeAddress?: StoreAddress): OrderRow[] {
-    this.storeAddress = storeAddress || null;
     const newRows: OrderRow[] = [];
     let personalOrder: OrderRow[] = [];
     let skippedCount = 0;

@@ -73,26 +73,3 @@ export const productConfig: Record<string, ProductInfo> = {
   "bagel101-18PK-KOL": { qty: 16, mixx_name: [], c2c_code: [], c2c_name: [] }
 };
 
-// 根據不同平台搜尋產品編號
-export function searchProduct(
-  searchValue: string,
-  searchType: 'mixx_name' | 'c2c_code' | 'aoshi_name',
-  c2cName?: string
-): string | null {
-  for (const [productCode, productInfo] of Object.entries(productConfig)) {
-    if (searchType === 'mixx_name' && productInfo.mixx_name.includes(searchValue)) {
-      return productCode;
-    }
-    if (searchType === 'c2c_code' && c2cName && productInfo.c2c_name.includes(c2cName)) {
-      for (const code of productInfo.c2c_code) {
-        if (searchValue.includes(code) || code.includes(searchValue)) {
-          return productCode;
-        }
-      }
-    }
-    if (searchType === 'aoshi_name' && productInfo.aoshi_name?.includes(searchValue)) {
-      return productCode;
-    }
-  }
-  return null;
-}

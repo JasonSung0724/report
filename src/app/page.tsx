@@ -74,7 +74,7 @@ export default function Home() {
     setError(null);
 
     try {
-      const processor = createProcessor(platform);
+      const processor = createProcessor(platform, productConfig);
       const rows = processor.process(rawData);
       const errors = processor.getErrors();
 
@@ -96,7 +96,7 @@ export default function Home() {
     } finally {
       setIsProcessing(false);
     }
-  }, [rawData, platform, outputFileName]);
+  }, [rawData, platform, outputFileName, productConfig]);
 
   if (!isLoaded) {
     return (
@@ -185,18 +185,16 @@ export default function Home() {
                     '生成並下載報告'
                   )}
                 </button>
-              </section>
 
-              {processingResult && (
-                <ProcessingResult
-                  originalCount={processingResult.originalCount}
-                  finalCount={processingResult.finalCount}
-                  uniqueOrderCount={processingResult.uniqueOrderCount}
-                  errors={processingResult.errors}
-                  onDownload={handleProcess}
-                  isProcessing={isProcessing}
-                />
-              )}
+                {processingResult && (
+                  <ProcessingResult
+                    originalCount={processingResult.originalCount}
+                    finalCount={processingResult.finalCount}
+                    uniqueOrderCount={processingResult.uniqueOrderCount}
+                    errors={processingResult.errors}
+                  />
+                )}
+              </section>
             </>
           )}
 
