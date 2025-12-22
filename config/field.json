@@ -32,5 +32,17 @@
         "receiver_phone": "收件人手機",
         "product_name": "品名/規格",
         "product_quantity": "採購數量"
+    },
+    "aoshi":{
+        "columns":["團購名稱","訂單號碼","訂單日期(年月日)","訂單狀態","付款方式","付款狀態","訂單總計(含運費)","已付金額","運費(總金額)","訂購人姓名","收件人姓名","收件人地址","收件人電話","收件人Email","客戶備註","商品代碼","國際條碼","商品名稱","商品數量","商品金額小計"],
+        "order_id": "訂單號碼",
+        "receiver_name": "收件人姓名",
+        "receiver_address": "收件人地址",
+        "receiver_phone": "收件人電話",
+        "product_code": "商品代碼",
+        "product_name": "商品名稱",
+        "product_quantity": "商品數量",
+        "order_date": "訂單日期(年月日)",
+        "order_mark": "客戶備註"
     }
 }

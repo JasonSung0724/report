@@ -9,3 +9,5 @@
 *.pyc
 config/__pycache__/*
 .DS_Store
+report/*
+.DS_Store

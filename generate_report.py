@@ -24,6 +24,8 @@ class ProductConfig:
                 for code in c2c_code_list:
                     if search_value in code:
                         return product_code
+            elif search_type == "aoshi_name" and search_value in product_info.get("aoshi_name", []):
+                return product_code
         return None
 
 
@@ -39,7 +41,10 @@ class OrderDataHandler:
             if isinstance(order_time, datetime):
                 date_time_format = order_time
             else:
-                date_time_format = datetime.strptime(order_time, "%Y-%m-%d %H:%M:%S")
+                try:
+                    date_time_format = datetime.strptime(order_time, "%Y-%m-%d %H:%M:%S")
+                except ValueError:
+                    date_time_format = datetime.strptime(order_time, "%Y-%m-%d")
             return date_time_format.strftime("%Y%m%d")
         except (ValueError, TypeError):
             return "INVALID_DATE"
@@ -55,10 +60,17 @@ class OrderDataHandler:
             return self.product_config.search_product(search_type="c2c_code", search_value=str(row["商品編號"]), c2c_name=str(row["商品樣式"]))
         elif self.platform == "shopline":
             return str(row[self.field_config["product_code"]])
+        elif self.platform == "aoshi":
+            return self.product_config.search_product(search_type="aoshi_name", search_value=str(row["商品名稱"]))
         return ""
 
     def get_order_mark(self, row: pd.Series) -> str:
-        platform_marks = {"c2c": ("減醣市集 X 快電商 C2C BUY", "出貨備註", " | "), "shopline": ("減醣市集", "出貨備註", "/"), "mixx": ("減醣市集", "備註", "/")}
+        platform_marks = {
+            "c2c": ("減醣市集 X 快電商 C2C BUY", "出貨備註", " | "),
+            "shopline": ("減醣市集", "出貨備註", "/"),
+            "mixx": ("減醣市集", "備註", "/"),
+            "aoshi": ("減醣市集 X 奧世國際", "客戶備註", "/"),
+        }
 
         if self.platform in platform_marks:
             prefix, note_field, separator = platform_marks[self.platform]
@@ -71,6 +83,7 @@ class OrderDataHandler:
             "c2c": lambda r: self.format_date(r["建立時間"]),
             "shopline": lambda r: self.format_date(r["訂單日期"]),
             "mixx": lambda _: self.format_date(datetime.now()),
+            "aoshi": lambda r: self.format_date(r["訂單日期(年月日)"]),
         }
         return date_mapping.get(self.platform, lambda _: "")(row)
 
@@ -86,8 +99,13 @@ class OrderProcessor:
 
             grand_total = 0
             for order in orders:
-                if str(order["商品編號"]) and str(order["商品編號"]) != "nan":
-                    qty = self.product_config.config[order["商品編號"]]["qty"]
+                product_code = str(order["商品編號"])
+                if product_code and product_code != "nan":
+                    product_info = self.product_config.config.get(product_code)
+                    if not product_info:
+                        print(f"未知商品編號: {product_code}")
+                        continue
+                    qty = product_info["qty"]
                     order_quantity = int(float(order["訂購數量"]))
                     grand_total += qty * order_quantity
 
@@ -142,6 +160,8 @@ class OrderProcessor:
             return self._process_mixx_orders(data)
         elif self.platform == "c2c":
             return self._process_c2c_orders(data)
+        elif self.platform == "aoshi":
+            return self._process_aoshi_orders(data)
         return []
 
     def _add_box_to_order(self, personal_order: List[Dict]) -> Dict:
@@ -169,6 +189,29 @@ class OrderProcessor:
             new_row = self.create_order_row(row)
             if str(row["*銷售單號"]) != "nan":
                 if not personal_order or personal_order[0]["貨主單號\n(不同客戶端、不同溫層要分單)"] == str(row["*銷售單號"]):
+                    personal_order.append(new_row)
+                else:
+                    personal_order = [new_row]
+                new_rows.append(new_row)
+
+        if personal_order:
+            new_rows.append(self._add_box_to_order(personal_order))
+
+        return new_rows
+
+    def _process_aoshi_orders(self, data: pd.DataFrame) -> List[Dict]:
+        new_rows = []
+        personal_order = []
+
+        for _, row in data.iterrows():
+            if personal_order and personal_order[0]["貨主單號\n(不同客戶端、不同溫層要分單)"] != str(row["訂單號碼"]):
+                new_rows.append(self._add_box_to_order(personal_order))
+                personal_order.clear()
+
+            new_row = self.create_order_row(row)
+
+            if str(row["訂單號碼"]) != "nan":
+                if not personal_order or personal_order[0]["貨主單號\n(不同客戶端、不同溫層要分單)"] == str(row["訂單號碼"]):
                     personal_order.append(new_row)
                 else:
                     personal_order = [new_row]

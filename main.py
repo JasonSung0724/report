@@ -37,10 +37,11 @@ class App(QWidget):
         platform_layout = QHBoxLayout()
         self.platform_group = QButtonGroup(self)
         
-        platforms = ["SHOPLINE", "C2C", "MIXX"]
-        for i, platform in enumerate(platforms):
-            btn = QPushButton(platform)
+        platforms = [("SHOPLINE", "shopline"), ("C2C", "c2c"), ("MIXX", "mixx"), ("奧世國際", "aoshi")]
+        for i, (platform_label, platform_key) in enumerate(platforms):
+            btn = QPushButton(platform_label)
             btn.setCheckable(True)
+            btn.setProperty("platform_key", platform_key)
             btn.setStyleSheet("""
                 QPushButton {
                     padding: 8px 15px;
@@ -105,7 +106,7 @@ class App(QWidget):
         self.setLayout(layout)
 
     def on_platform_changed(self, button):
-        self.platform = button.text().lower()
+        self.platform = button.property("platform_key") or button.text().lower()
 
     def select_input_file(self):
         options = QFileDialog.Options()
