@@ -1,6 +1,40 @@
-// 各平台欄位配置
-export const fieldConfig = {
+/**
+ * 平台欄位配置介面
+ * 用於定義每個平台的欄位映射關係
+ */
+export interface PlatformFieldConfig {
+  // 識別特徵：這些欄位同時存在時，判定為此平台
+  identifyBy: string[];
+  // 必要欄位：生成訂單時一定需要的欄位（缺少會阻止生成）
+  requiredColumns: string[];
+  // 所有預期欄位（用於參考）
+  columns: string[];
+  // 欄位映射
+  order_id: string;
+  receiver_name: string;
+  receiver_phone: string;
+  receiver_address: string;
+  product_name: string;
+  product_quantity: string;
+  // 可選欄位映射
+  product_code?: string;
+  order_date?: string;
+  order_mark?: string;
+  delivery_method?: string;
+  store_name?: string;
+  arrival_time?: string;
+}
+
+export type FieldConfigMap = Record<string, PlatformFieldConfig>;
+
+// 預設平台欄位配置（可透過 localStorage 覆蓋）
+export const defaultFieldConfig: FieldConfigMap = {
   c2c: {
+    // 識別特徵：這些欄位同時存在時，判定為此平台
+    identifyBy: ["平台訂單編號", "商品編號", "商品樣式"],
+    // 必要欄位：生成訂單時一定需要的欄位（缺少會阻止生成）
+    requiredColumns: ["平台訂單編號", "收件者姓名", "收件者手機", "收件者地址", "商品樣式", "小計數量"],
+    // 所有預期欄位（用於參考，缺少只會警告）
     columns: [
       "填單日期", "建立時間", "平台訂單編號", "交易序號", "收件者姓名",
       "收件者手機", "收件者地址", "商品編號", "商品樣式", "小計數量",
@@ -17,6 +51,11 @@ export const fieldConfig = {
     order_date: "建立時間"
   },
   shopline: {
+    // 識別特徵：這些欄位同時存在時，判定為此平台
+    // 注意：部分 SHOPLINE 匯出可能沒有「商品貨號」，改用更穩定的欄位
+    identifyBy: ["訂單號碼", "送貨方式", "收件人電話號碼"],
+    // 必要欄位：生成訂單時一定需要的欄位
+    requiredColumns: ["訂單號碼", "收件人", "收件人電話號碼", "商品名稱", "數量", "送貨方式"],
     columns: [
       "訂單號碼", "訂單日期", "訂單狀態", "付款狀態", "訂單備註",
       "送貨方式", "送貨狀態", "收件人", "收件人電話號碼", "門市名稱",
@@ -25,15 +64,22 @@ export const fieldConfig = {
     ],
     order_id: "訂單號碼",
     receiver_name: "收件人",
+    receiver_address: "完整地址",
     product_code: "商品貨號",
     receiver_phone: "收件人電話號碼",
     product_name: "商品名稱",
     delivery_method: "送貨方式",
     store_name: "門市名稱",
     product_quantity: "數量",
-    order_date: "訂單日期"
+    order_date: "訂單日期",
+    arrival_time: "到貨時間",
+    order_mark: "出貨備註"
   },
   mixx: {
+    // 識別特徵：這些欄位同時存在時，判定為此平台
+    identifyBy: ["*銷售單號", "品名/規格", "採購數量"],
+    // 必要欄位
+    requiredColumns: ["*銷售單號", "收件人", "收件人手機", "收件地址", "品名/規格", "採購數量"],
     columns: [
       "*銷售單號", "收件人", "收件人手機", "收件地址", "品名/規格",
       "採購數量", "單價", "進價小計", "銷售單價", "銷售小計",
@@ -47,6 +93,10 @@ export const fieldConfig = {
     product_quantity: "採購數量"
   },
   aoshi: {
+    // 識別特徵：這些欄位同時存在時，判定為此平台
+    identifyBy: ["團購名稱", "訂單日期(年月日)", "商品代碼"],
+    // 必要欄位
+    requiredColumns: ["訂單號碼", "收件人姓名", "收件人地址", "收件人電話", "商品名稱", "商品數量"],
     columns: [
       "團購名稱", "訂單號碼", "訂單日期(年月日)", "訂單狀態", "付款方式",
       "付款狀態", "訂單總計(含運費)", "已付金額", "運費(總金額)", "訂購人姓名",
@@ -63,9 +113,12 @@ export const fieldConfig = {
     order_date: "訂單日期(年月日)",
     order_mark: "客戶備註"
   }
-} as const;
+};
 
-export type Platform = keyof typeof fieldConfig;
+// 為了向後相容，保留 fieldConfig 別名
+export const fieldConfig = defaultFieldConfig;
+
+export type Platform = keyof typeof defaultFieldConfig;
 
 // 運送方式常量
 export const TargetShipping = {

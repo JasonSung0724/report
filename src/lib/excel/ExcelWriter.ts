@@ -15,17 +15,18 @@ export async function generateAndDownloadReport(rows: OrderRow[], fileName: stri
 
   const templateColumns = worksheet.getRow(1).values as string[];
 
+  // Start writing from row 2 (after header)
+  let currentRowNumber = 2;
+
   for (const row of rows) {
-    const rowData: (string | undefined)[] = [undefined];
+    const excelRow = worksheet.getRow(currentRowNumber);
+
     for (let i = 1; i < templateColumns.length; i++) {
       const col = templateColumns[i];
-      rowData.push((row as Record<string, string>)[col] || '');
-    }
+      const cell = excelRow.getCell(i);
+      const value = (row as Record<string, string>)[col] || '';
+      cell.value = value;
 
-    const excelRow = worksheet.addRow(rowData);
-
-    excelRow.eachCell((cell) => {
-      const value = String(cell.value || '');
       const isError = value.includes('ERROR') || value.toLowerCase() === 'nan';
 
       cell.font = {
@@ -35,20 +36,25 @@ export async function generateAndDownloadReport(rows: OrderRow[], fileName: stri
         color: isError ? { argb: 'FFFF0000' } : { argb: 'FF000000' },
       };
       cell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
-    });
+    }
 
+    // Calculate row height based on line breaks
     const lineCount = Math.max(
-      ...rowData.slice(1).map(v => (String(v || '').match(/\n/g) || []).length + 1)
+      ...Object.values(row).map(v => (String(v || '').match(/\n/g) || []).length + 1)
     );
     excelRow.height = Math.max(20, lineCount * 15);
+
+    excelRow.commit();
+    currentRowNumber++;
   }
 
-  for (let i = 1; i <= templateColumns.length; i++) {
+  // Adjust column widths
+  for (let i = 1; i < templateColumns.length; i++) {
     const column = worksheet.getColumn(i);
     let maxLength = column.width || 10;
 
     column.eachCell({ includeEmpty: false }, (cell, rowNumber) => {
-      if (rowNumber > 1) {
+      if (rowNumber > 1 && rowNumber <= currentRowNumber) {
         const cellLength = String(cell.value || '').length;
         if (cellLength > maxLength) {
           maxLength = Math.min(cellLength + 2, 50);
